@@ -1,0 +1,150 @@
+node {
+    "name": "nd_train_and_predict",
+    "image": { "name": "sklearn_train_and_predict", "version": "1"},
+    "input": {
+    },
+    "output": {
+        "pred_labels": { "type": "file", "format": "json", "path_in_container": "/data/pred_labels.json" },
+        "true_labels": { "type": "file", "format": "json", "path_in_container": "/data/true_labels.json" }
+    }
+};
+
+workflow {
+    "name": "wf_train_and_predict",
+    "input": {
+    },
+    "output": {
+        "pred_labels":       { "type": "file", "format": "json" },
+        "true_labels":       { "type": "file", "format": "json" }
+    },
+    "bind": {
+        "seed_setting":      { "type": "environment_var", "format": "str", "environment_var_value": "42" }
+    },
+    "connect": {
+        "model_file":        { "type": "file", "format": "any" },
+        "X_test_file":       { "type": "file", "format": "any" }
+    },
+    "nodes": {
+        "model": {
+            "node": {"name": "nd_train", "version": "1"},
+            "input": {
+                "seed": "seed_setting"
+            },
+            "output": {
+                "model":       "model_file",
+                "X_test":      "X_test_file",
+                "true_labels": "true_labels"
+            }
+        },
+        "predict": {
+            "node": {"name": "nd_predict", "version": "1"},
+            "input": {
+                "model":       "model_file",
+                "X_test":      "X_test_file"
+            },
+            "output": {
+                "pred_labels": "pred_labels"
+            }
+        }
+    }
+};
+
+workflow {
+    "name": "wf_metrics_1",
+    "input": {
+    },
+    "output": {
+        "metric_result":  { "type": "file", "format": "json" }
+    },
+    "bind": {
+        "accuracy_cmd":     { "type": "environment_var", "format": "str", "environment_var_value": "accuracy" }
+    },
+    "connect": {
+        "pred_labels_file":  { "type": "file", "format": "json" },
+        "true_labels_file":  { "type": "file", "format": "json" }
+    },
+    "nodes": {
+        "predict": {
+            "workflow": {"name": "wf_train_and_predict", "version": "latest"},
+            "input": {
+            },
+            "output": {
+                "pred_labels": "pred_labels_file",
+                "true_labels": "true_labels_file"
+            }
+        },
+        "metric": {
+            "node": {"name": "nd_metric", "version": "1"},
+            "input": {
+                "cmd":         "accuracy_cmd",
+                "pred_labels": "pred_labels_file",
+                "true_labels": "true_labels_file"
+            },
+            "output": {
+                "result": "metric_result"
+            }
+        }
+    }
+};
+
+refine {
+    "name": "wf_metrics_2",
+    "workflow": { "name": "wf_metrics_1", "version": "latest" },
+    "replace_bind": {
+        "accuracy_cmd": { "type": "environment_var", "format": "str", "environment_var_value": "accuracy,precision" }
+    }
+};
+
+refine {
+    "name": "wf_metrics_4",
+    "workflow": { "name": "wf_metrics_1", "version": "latest" },
+    "replace_bind": {
+        "accuracy_cmd": { "type": "environment_var", "format": "str", "environment_var_value": "accuracy,precision,recall,f1" }
+    }
+};
+
+refine {
+    "name": "wf_replace_wf_by_node",
+    "workflow": { "name": "wf_metrics_1", "version": "latest" },
+    "replace_by_node": {
+        "predict": { "name": "nd_train_and_predict", "version": "latest"}
+    }
+};
+
+refine {
+    "name": "wf_replace_node_by_wf",
+    "workflow": { "name": "wf_metrics_1", "version": "latest" },
+    "replace_by_workflow": {
+        "predict": { "name": "wf_train_and_predict", "version": "latest"}
+    }
+};
+
+run {
+    "name": "run_predict_standalone",
+    "workflow": { "name": "wf_train_and_predict", "version": "latest" }
+};
+
+run {
+    "name": "run_metrics_1",
+    "workflow": { "name": "wf_metrics_1", "version": "latest" }
+};
+
+run {
+    "name": "run_metrics_2",
+    "workflow": { "name": "wf_metrics_2", "version": "latest" }
+};
+
+run {
+    "name": "run_metrics_4",
+    "workflow": { "name": "wf_metrics_4", "version": "latest" }
+};
+
+run {
+    "name": "run_replace_wf_by_node",
+    "workflow": { "name": "wf_replace_wf_by_node", "version": "latest" }
+};
+
+run {
+    "name": "run_replace_node_by_wf",
+    "workflow": { "name": "wf_replace_node_by_wf", "version": "latest" }
+};

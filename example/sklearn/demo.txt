@@ -1,0 +1,140 @@
+// PREPARATION
+
+user {
+    "name":"sklearn","display_name":"demo user for the sklearn example","su":true
+};
+login sklearn;
+
+
+// PART 1: train a model with seed 42 of the random number generator
+
+node {
+    "name": "nd_train",
+    "image": { "name": "sklearn_train", "version": "1" },
+    "input": {
+        "seed":         {"type": "environment_var", "format": "str", "environment_var_in_container": "SEED"}
+    },
+    "output": {
+        "model":       { "type": "file", "format": "any",  "path_in_container": "/data/model.pkl" },
+        "X_test":      { "type": "file", "format": "json", "path_in_container": "/data/X_test.json" },
+        "true_labels": { "type": "file", "format": "json", "path_in_container": "/data/true_labels.json" }
+    }
+};
+
+workflow {
+    "name": "wf_train",
+    "input": {
+    },
+    "output": {
+        "model_file":        { "type": "file", "format": "any" },
+        "X_test_file":       { "type": "file", "format": "any" },
+        "true_labels_file":  { "type": "file", "format": "any" }
+    },
+    "bind": {
+        "seed_setting":     { "type": "environment_var", "format": "str", "environment_var_value": "42" }
+    },
+    "connect": {
+    },
+    "nodes": {
+        "train": {
+            "node": {"name": "nd_train", "version": "latest"},
+            "input": {
+                "seed":        "seed_setting"
+            },
+            "output": {
+                "model":       "model_file",
+                "X_test":      "X_test_file",
+                "true_labels": "true_labels_file"
+            }
+        }
+    }
+};
+
+run {
+    "name": "run_train",
+    "workflow": { "name": "wf_train", "version": "latest" }
+};
+
+// PART 2: use the trained model to predict values and compute metrics for the prediction
+
+node {
+    "name": "nd_predict",
+    "image": { "name": "sklearn_predict", "version": "1"},
+    "input": {
+        "model":  { "type": "file", "format": "any", "path_in_container": "/data/model.pkl" },
+        "X_test": { "type": "file", "format": "any", "path_in_container": "/data/X_test.json" }
+    },
+    "output": {
+        "pred_labels": { "type": "file", "format": "json", "path_in_container": "/data/pred_labels.json" }
+    }
+};
+
+node {
+    "name": "nd_metric",
+    "image": { "name": "sklearn_metric", "version": "1"},
+    "input": {
+        "cmd":         {"type": "environment_var", "format": "str", "environment_var_in_container": "CMD"},
+        "pred_labels": { "type": "file", "format": "json", "path_in_container": "/data/pred_labels.json" },
+        "true_labels": { "type": "file", "format": "json", "path_in_container": "/data/true_labels.json" }
+    },
+    "output": {
+        "result":      {"type": "file", "format": "json", "path_in_container": "/data/result.json"}
+    }
+};
+
+workflow {
+    "name": "wf_predict_and_metric",
+    "input": {
+    },
+    "output": {
+        "result_file":       { "type": "file", "format": "json" }
+    },
+    "bind": {
+        "model_file": {
+            "name": "model_file", "version": "latest", "type": "file", "format": "any",
+            "data": { "name": "model_file", "version": "latest" }
+        },
+        "X_test_file": {
+            "name": "X_test_file", "version": "latest", "type": "file", "format": "any",
+            "data": { "name": "X_test_file", "version": "latest" }
+        },
+        "true_labels_file":
+            { "name": "true_labels_file", "version": "latest", "type": "file", "format": "any",
+            "data": { "name": "true_labels_file", "version": "latest" }
+        },
+        "metric_def":
+            { "type": "environment_var", "format": "str", "environment_var_value": "accuracy,precision"
+        }
+    },
+    "connect": {
+        "pred_labels_file":  { "type": "file", "format": "any" }
+    },
+    "nodes": {
+        "predict": {
+            "node": {"name": "nd_predict", "version": "latest"},
+            "input": {
+                "model":       "model_file",
+                "X_test":      "X_test_file"
+            },
+            "output": {
+                "pred_labels": "pred_labels_file"
+            }
+        },
+        "metric": {
+            "node": {"name": "nd_metric", "version": "latest"},
+            "input": {
+                "cmd":         "metric_def",
+                "pred_labels": "pred_labels_file",
+                "true_labels": "true_labels_file"
+            },
+            "output": {
+                "result": "result_file"
+            }
+        }
+    }
+};
+
+run {
+    "name": "run_predict_and_metric",
+    "workflow": { "name": "wf_predict_and_metric", "version": "latest" }
+};

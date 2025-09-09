@@ -1,0 +1,8 @@
+run {
+    "name": "run_accuracy_seed_42",
+    "workflow": { "name": "wf_accuracy_seed_42", "version": "latest" }
+};
+run {
+    "name": "run_accuracy_seed_1964",
+    "workflow": { "name": "wf_accuracy_seed_1964", "version": "latest" }
+};

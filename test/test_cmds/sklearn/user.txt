@@ -1,0 +1,10 @@
+user {
+    "name":"rbudde","display_name":"Reinhard Budde","su":true
+};
+login rbudde;
+user {
+    "name":"ibudde","display_name":"Inte Budde","su":false
+};
+user {
+    "name":"lina","display_name":"Lina Budde","su":false
+};

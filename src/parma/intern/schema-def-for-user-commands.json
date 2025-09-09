@@ -1,0 +1,415 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$defs": {
+    "alphanumeric_name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+    },
+    "version_pattern": {
+      "type": "string",
+      "pattern": "^latest|[0-9]+$"
+    },
+    "hash_pattern": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{40}$"
+    },
+    "path_pattern": {
+      "type": "string",
+      "pattern": "^(?:[a-zA-Z]:\\\\|\\\\\\\\|/)?([^<>:\"|?*]+[\\\\/])*[^<>:\"|?*]+$",
+      "description": "A valid file path that supports both Linux and Windows formats."
+    },
+    "name_version__or__hash": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/alphanumeric_name"
+        },
+        "version": {
+          "$ref": "#/$defs/version_pattern"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{40}$",
+          "description": "A valid SHA-1 hash."
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "name",
+            "version"
+          ],
+          "not": {
+            "required": [
+              "hash"
+            ]
+          }
+        },
+        {
+          "required": [
+            "hash"
+          ],
+          "not": {
+            "required": [
+              "name",
+              "version"
+            ]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "type_def": {
+      "type": "string",
+      "enum": ["file", "directory", "environment_var"]
+    },
+    "bool_def": {
+      "type": "string",
+      "enum": ["true", "false"]
+    },
+    "storage_def": {
+      "type": "string",
+      "enum": ["platform", "extern"]
+    },
+    "format_def": {
+      "type": "string",
+      "enum": ["json", "str", "any"]
+    },
+    "full_channel_def": {
+      "type": "object",
+      "properties": {
+        "type": { "$ref": "#/$defs/type_def" },
+        "format": { "$ref": "#/$defs/format_def" },
+        "storage": { "$ref": "#/$defs/storage_def" },
+        "hash": { "$ref": "#/$defs/bool_def" },
+        "user_path": { "$ref": "#/$defs/path_pattern" }
+      },
+      "required": [
+        "type",
+        "format"
+      ],
+      "additionalProperties": false
+    },
+    "user_def": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/alphanumeric_name"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "su": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "display_name",
+        "su"
+      ],
+      "additionalProperties": false
+    },
+    "data_def": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/alphanumeric_name"
+        },
+        "type": {
+          "$ref": "#/$defs/type_def"
+        },
+        "storage": {
+          "$ref": "#/$defs/storage_def"
+        },
+        "hash": {
+          "$ref": "#/$defs/bool_def"
+        },
+        "format": {
+          "$ref": "#/$defs/format_def"
+        },
+        "user_path": {
+          "$ref": "#/$defs/path_pattern"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "storage",
+        "hash",
+        "format",
+        "user_path"
+      ],
+      "additionalProperties": false
+    },
+    "node_def": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/alphanumeric_name"
+        },
+        "image": {
+          "$ref": "#/$defs/name_version__or__hash"
+        },
+        "input": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "$ref": "#/$defs/type_def"
+                },
+                "format": {
+                  "$ref": "#/$defs/format_def"
+                },
+                "path_in_container": {
+                  "$ref": "#/$defs/path_pattern"
+                },
+                "environment_var_in_container": {
+                  "$ref": "#/$defs/alphanumeric_name"
+                }
+              },
+              "required": [
+                "type",
+                "format"
+              ],
+              "oneOf": [
+                { "required": ["path_in_container"], "not": { "required": ["environment_var_in_container"] } },
+                { "required": ["environment_var_in_container"], "not": { "required": ["path_in_container"] } }
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "$ref": "#/$defs/type_def"
+                  },
+                  "format": {
+                    "$ref": "#/$defs/format_def"
+                  },
+                  "path_in_container": {
+                    "$ref": "#/$defs/path_pattern"
+                  }
+                },
+                "required": [
+                  "type",
+                  "format",
+                  "path_in_container"
+                ],
+                "additionalProperties": false
+              }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "image",
+        "input",
+        "output"
+      ],
+      "additionalProperties": false
+    },
+    "workflow_def": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/alphanumeric_name"
+        },
+        "input": {
+          "^[a-zA-Z][a-zA-Z0-9_]*$": {
+            "type": "object",
+            "properties": {
+              "type": { "$ref": "#/$defs/type_def" },
+              "format": { "$ref": "#/$defs/format_def"  }
+            },
+            "required": [
+              "type",
+              "format"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "output": {
+          "^[a-zA-Z][a-zA-Z0-9_]*$": {
+            "$ref": "#/$defs/full_channel_def"
+          }
+        },
+        "bind": {
+          "^[a-zA-Z][a-zA-Z0-9_]*$": {
+            "type": "object",
+            "patternProperties": {
+              "^[a-zA-Z][a-zA-Z0-9_]*$": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "$ref": "#/$defs/type_def"
+                  },
+                  "format": {
+                    "$ref": "#/$defs/format_def"
+                  },
+                  "data": {
+                    "$ref": "#/$defs/name_version__or__hash"
+                  },
+                  "environment_var_value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "format"
+                ],
+                "oneOf": [
+                  { "required": ["data"], "not": { "required": ["environment_var_value"] } },
+                  { "required": ["environment_var_value"], "not": { "required": ["data"] } }
+                ],
+                "additionalProperties": false
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "connect": {
+          "^[a-zA-Z][a-zA-Z0-9_]*$": {
+            "$ref": "#/$defs/full_channel_def"
+          }
+        },
+        "nodes": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "type": "object",
+              "properties": {
+                "node": {
+                  "$ref": "#/$defs/name_version__or__hash"
+                },
+                "workflow": {
+                  "$ref": "#/$defs/name_version__or__hash"
+                },
+                "input": {
+                  "^[a-zA-Z][a-zA-Z0-9_]*$": {
+                    "$ref": "#/$defs/alphanumeric_name"
+                  }
+                },
+                "output": {
+                  "^[a-zA-Z][a-zA-Z0-9_]*$": {
+                    "$ref": "#/$defs/alphanumeric_name"
+                  }
+                }
+              },
+              "required": [
+                "input",
+                "output"
+              ],
+              "oneOf": [
+                { "required": [ "node" ], "not": { "required": [ "workflow" ] } },
+                { "required": [ "workflow" ], "not": { "required": [ "node" ] } }
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "input",
+        "output",
+        "bind",
+        "connect",
+        "nodes"
+      ],
+      "additionalProperties": false
+    },
+    "refine_def": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/alphanumeric_name"
+        },
+        "workflow": {
+          "$ref": "#/$defs/name_version__or__hash"
+        },
+        "replace_by_node": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "$ref": "#/$defs/name_version__or__hash"
+            }
+          },
+          "additionalProperties": false
+        },
+        "replace_by_workflow": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "$ref": "#/$defs/name_version__or__hash"
+            }
+          },
+          "additionalProperties": false
+        },
+        "replace_bind": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "$ref": "#/$defs/type_def"
+                },
+                "format": {
+                  "$ref": "#/$defs/format_def"
+                },
+                "data": {
+                  "$ref": "#/$defs/name_version__or__hash"
+                },
+                "environment_var_value": {
+                  "type": "string"
+                }
+              },
+            "required": [
+              "type",
+              "format"
+            ],
+            "oneOf": [
+              { "required": ["data"], "not": { "required": ["environment_var_value"] } },
+              { "required": ["environment_var_value"], "not": { "required": ["data"] } }
+            ],
+            "additionalProperties": false
+          },
+          "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "name",
+        "workflow"
+      ],
+      "additionalProperties": false
+    },
+    "run_def": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/alphanumeric_name"
+        },
+        "workflow": {
+          "$ref": "#/$defs/name_version__or__hash"
+        }
+      },
+      "required": [
+        "name",
+        "workflow"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

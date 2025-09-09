@@ -1,0 +1,159 @@
+node {
+    "name": "nd_array_gen_r",
+    "image": { "name": "array_gen_r", "version": "1"},
+    "input":  {
+        "count": { "type": "environment_var", "format": "str", "environment_var_in_container": "COUNT"}
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "path_in_container": "/data/generated_array.json"}
+    }
+};
+node {
+    "name": "nd_array_gen_bash",
+    "image": { "name": "array_gen_bash", "version": "1"},
+    "input":  {
+        "count": { "type": "environment_var", "format": "str", "environment_var_in_container": "COUNT"}
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "path_in_container": "/data/generated_array.json"}
+    }
+};
+node {
+    "name": "nd_array_gen_python",
+    "image": { "name": "array_gen_python", "version": "1"},
+    "input":  {
+        "count": { "type": "environment_var", "format": "str", "environment_var_in_container": "COUNT"}
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "path_in_container": "/data/generated_array.json"}
+    }
+};
+node {
+    "name": "nd_array_cut",
+    "image": { "name": "array_cut", "version": "1"},
+    "input":  {
+        "direction": { "type": "environment_var", "format": "str", "environment_var_in_container": "DIR" },
+        "count": { "type": "environment_var", "format": "str", "environment_var_in_container": "COUNT" },
+        "in": { "type": "file", "format": "json", "path_in_container": "/data/input_array.json" }
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "path_in_container": "/data/output_array.json" }
+    }
+};
+node {
+    "name": "nd_array_join",
+    "image": { "name": "array_join", "version": "1"},
+    "input":  {
+        "in_1": {"type": "file", "format": "json", "path_in_container": "/data/in_1.json"},
+        "in_2": {"type": "file", "format": "json", "path_in_container": "/data/in_2.json"},
+        "in_3": {"type": "file", "format": "json", "path_in_container": "/data/in_3.json"},
+        "in_4": {"type": "file", "format": "json", "path_in_container": "/data/in_4.json"},
+        "in_5": {"type": "file", "format": "json", "path_in_container": "/data/in_5.json"}
+    },
+    "output": {
+        "out": {"type": "file", "format": "json", "path_in_container": "/data/out.json"} }
+};
+
+workflow {
+    "name": "wf_process_array",
+    "input": {
+    },
+    "output": {
+        "joined_array": { "type": "file", "format": "json" }
+    },
+    "bind": {
+        "count_10": { "type": "environment_var", "format": "str", "environment_var_value": "10" },
+        "count_5":  { "type": "environment_var", "format": "str", "environment_var_value": "5" },
+        "count_7":  { "type": "environment_var", "format": "str", "environment_var_value": "7" },
+        "left": { "type": "environment_var", "format": "str", "environment_var_value": "left" },
+        "right": { "type": "environment_var", "format": "str", "environment_var_value": "right" },
+        "count_3": { "type": "environment_var", "format": "str", "environment_var_value": "3" },
+        "count_2": {"type": "environment_var", "format": "str", "environment_var_value": "2" }
+    },
+    "connect": {
+        "generated_array_by_r":      { "type": "file", "format": "json" },
+        "generated_array_by_bash":   { "type": "file", "format": "json" },
+        "generated_array_by_python": { "type": "file", "format": "json" },
+        "cut_3_left":   { "type": "file", "format": "json" },
+        "cut_2_right":  { "type": "file", "format": "json" }
+    },
+    "nodes": {
+        "gen1": {
+            "node": {
+                "name": "nd_array_gen_r", "version": "latest"
+            },
+            "input": {
+                "count": "count_10"
+            },
+            "output": {
+                "out": "generated_array_by_r"
+            }
+        },
+        "gen2": {
+            "node": {
+                "name": "nd_array_gen_bash", "version": "latest"
+            },
+            "input": {
+                "count": "count_5"
+            },
+            "output": {
+                "out": "generated_array_by_bash"
+            }
+        },
+        "gen3": {
+            "node": {
+                "name": "nd_array_gen_python", "version": "latest"
+            },
+            "input": {
+                "count": "count_7"
+            },
+            "output": {
+                "out": "generated_array_by_python"
+            }
+        },
+        "cut_1": {
+            "node": {
+                "name": "nd_array_cut", "version": "latest"
+            },
+            "input":  {
+                "direction": "left",
+                "count": "count_3",
+                "in": "generated_array_by_r"
+            },
+            "output": {
+                "out": "cut_3_left"
+            }
+        },
+        "cut_2": {
+            "node": {
+                "name": "nd_array_cut", "version": "latest"
+            },
+            "input":  {
+                "direction": "right",
+                "count": "count_2",
+                "in": "cut_3_left"
+            },
+            "output": {
+                "out": "cut_2_right"
+            }
+        },
+        "join": {
+            "node": {
+                "name": "nd_array_join", "version": "latest"
+            },
+            "input":  {
+                "in_2": "generated_array_by_bash",
+                "in_3": "generated_array_by_python",
+                "in_5": "cut_2_right"
+            },
+            "output": {
+                "out": "joined_array"
+            }
+        }   
+    }
+};
+
+run {
+    "name": "run_process_array",
+    "workflow": { "name": "wf_process_array", "version": "latest" }
+};

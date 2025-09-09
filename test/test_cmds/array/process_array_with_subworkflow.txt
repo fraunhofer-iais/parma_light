@@ -1,0 +1,101 @@
+workflow {
+    "name": "wf_cut_2_times",
+    "input": {
+        "in_for_cut": { "type": "file", "format": "json" }
+    },
+    "output": {
+        "out_after_cut": { "type": "file", "format": "json" }
+    },
+    "bind": {
+        "left":    { "type": "environment_var", "format": "str", "environment_var_value": "left"  },
+        "right":   { "type": "environment_var", "format": "str", "environment_var_value": "right" },
+        "count_3": { "type": "environment_var", "format": "str", "environment_var_value": "3"     },
+        "count_2": { "type": "environment_var", "format": "str", "environment_var_value": "2"     }
+    },
+    "connect": {
+        "intermediate": { "type": "file", "format": "json" }
+    },
+    "nodes": {
+        "cut_r1": {
+            "node": {
+                "name": "nd_array_cut", "version": "latest"
+            },
+            "input":  {
+                "direction": "left",
+                "count": "count_3",
+                "in": "in_for_cut"
+            },
+            "output": {
+                "out": "intermediate"
+            }
+        },
+        "cut_r2": {
+            "node": {
+                "name": "nd_array_cut", "version": "latest"
+            },
+            "input":  {
+                "direction": "right",
+                "count": "count_2",
+                "in": "intermediate"
+            },
+            "output": {
+                "out": "out_after_cut"
+            }
+        }
+    }
+};
+
+workflow {
+    "name": "wf_process_array_with_subworkflow",
+    "input": {
+    },
+    "output": {
+        "joined_array": { "type": "file", "format": "json" }
+    },
+    "bind": {
+        "count_10": { "type": "environment_var", "format": "str", "environment_var_value": "10"}
+    },
+    "connect": {
+        "generated_array": { "type": "file", "format": "json" },
+        "cutted_for_join": { "type": "file", "format": "json" }
+    },
+    "nodes": {
+        "gen1": {
+            "node": {
+                "name": "nd_array_gen_r", "version": "latest"
+            },
+            "input": {
+                "count": "count_10"
+            },
+            "output": {
+                "out": "generated_array"
+            }
+        },
+        "cut_2_times": {
+            "workflow": {
+                "name": "wf_cut_2_times", "version": "latest"
+            },
+            "input":  {
+                "in_for_cut": "generated_array"
+            },
+            "output": {
+                "out_after_cut": "cutted_for_join"
+            }
+        },
+        "join": {
+            "node": {"name": "nd_array_join", "version": "latest"},
+            "input":  {
+                "in_2": "cutted_for_join",
+                "in_5": "cutted_for_join"
+            },
+            "output": {
+                "out": "joined_array"
+            }
+        }
+    }
+};
+
+run {
+    "name": "run_process_array_with_subworkflow",
+    "workflow": { "name": "wf_process_array_with_subworkflow", "version": "latest" }
+};

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Command Runner</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    input[type="text"] { width: 300px; padding: 0.5em; }
+    button { padding: 0.5em 1em; }
+    #result { margin-top: 1em; }
+  </style>
+</head>
+<body>
+  <h2>Send User Command</h2>
+  <input type="text" id="userInput" placeholder='Enter user JSON, e.g. {"name":"alice"}'>
+  <button onclick="runUser()">Run</button>
+  <div id="result"></div>
+
+  <script>
+    async function runUser() {
+      const input = document.getElementById('userInput').value;
+      let payload;
+      try {
+        payload = JSON.parse(input);
+      } catch (e) {
+        document.getElementById('result').textContent = "Invalid JSON: " + e.message;
+        return;
+      }
+      const res = await fetch('http://localhost:8080/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+    }
+  </script>

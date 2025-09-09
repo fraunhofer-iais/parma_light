@@ -1,0 +1,28 @@
+Please read the README.md of this git repository.
+=================================================
+
+Options:
+  -q         quiet mode, no startup message
+Commands:
+  help       get help (this text).
+  
+  init {parma-dir}
+    creates a setup of the parma demonstrator in {parma-dir}. {parma-dir} must not exist,
+    except, when '' or 'datastore_parma' is used. Then, it is assumed, that this a
+    test and debug directory 'datastore_parma', contained in this repo (and in .gitignore)
+  
+  backend
+    starts the PARMA light backend server. Run in a terminal of its own.
+
+  frontend
+    starts the PARMA light frontend cli. Run in a terminal of its own.
+    Enter the command 'test_data;' to load some data.
+
+  image {domain} {name} {version}
+    'domain' is the name of a directory in 'test/container', in which all container of a group are assembled
+    'name' should be the name of an image to be build and the name of a directory in the 'domain' directory
+    'docker build' is called.
+    'version' is the version of the tag created (for demonstration purposes almost always "1").
+
+  images {domain}
+    create all images for the 'domain' given. 'domain' is the name of a directory in 'test/container'.

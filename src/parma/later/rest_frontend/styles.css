@@ -1,0 +1,48 @@
+body {
+    display: flex;
+}
+
+#command-list {
+    width: 20%;
+    padding: 10px;
+    border-right: 1px solid #ccc;
+}
+
+#command-list button {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    cursor: pointer;
+}
+
+#form-container {
+    width: 80%;
+    padding: 10px;
+}
+
+#form-container form {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.form-group label {
+    width: 150px;
+    margin-right: 10px;
+}
+
+.form-group input {
+    flex: 1;
+    padding: 10px;
+}
+
+#form-container form button {
+    padding: 10px;
+    cursor: pointer;
+}

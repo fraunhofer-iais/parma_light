@@ -1,0 +1,37 @@
+Metadata-Version: 2.4
+Name: parma-light
+Version: 0.1.0
+Summary: A demonstrator of the PARMA concept
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: jsonschema>=4.23.0
+Requires-Dist: numpy>=2.0.2
+Requires-Dist: python-on-whales>=0.76.1
+Requires-Dist: scikit-learn>=1.6.1
+
+# The Demonstrator Parma-Light
+
+This git repository contains the implementation of the Parma-Light demonstrator:
+
+- the rationale behind this repository is described in `resources/RATIONALE.md`
+- the API, that can be used by either a CLI or a REST-server is described in `resources/APIDOC.md`
+
+- the bash script `./admin.sh` contains commands to experiment with the demonstrator:
+  - `./admin.sh init` to initialize the datastore
+  - `./admin.sh init_data` to load some data for experiments
+  - `./admin.sh run` to run the CLI of the demonstrator. Available commands are in `resources/APIDOC.md`
+
+  - run `./admin.sh init init_data run` to have fully usable data for experiments
+
+# Further Notes
+
+The implementation is IP of the department AAA of the Fraunhofer Institute IAIS and the Fraunhofer Institute IAIS.
+
+Contact: reinhard.budde AT iais.fraunhofer.de
+
+Among many others the following people helped to design and implement the demonstrator:
+
+- Daniel Becker
+- Michael Mock
+- Maximilian Pintz
+- Maximilian Poreschkin

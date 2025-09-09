@@ -1,0 +1,16 @@
+{
+    "workbench.tree.indent": 32,
+    "files.eol": "\n",
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
+    },
+    "editor.formatOnSave": false,
+    "python.analysis.extraPaths": [
+        "./src/parma"
+    ],
+    "python.testing.pytestArgs": [
+        "test"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}

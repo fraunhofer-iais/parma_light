@@ -1,0 +1,25 @@
+[project]
+name = "parma-light"
+version = "0.1.0"
+description = "A demonstrator of the PARMA concept"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "flask>=3.1.1",
+    "jsonschema>=4.23.0",
+    "numpy>=2.0.2",
+    "pytest>=8.4.1",
+    "python-on-whales>=0.76.1",
+    "requests>=2.32.4",
+    "scikit-learn>=1.6.1",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "test"
+]
+pythonpath = [
+  "./src/parma"
+]

@@ -1,0 +1,7 @@
+build/
+test_parma/
+database_parma/
+datastore_parma/
+.venv/
+**/__pycache__/
+test/temp/

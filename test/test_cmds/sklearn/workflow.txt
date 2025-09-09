@@ -1,0 +1,60 @@
+workflow {
+    "name": "wf_accuracy_seed_42",
+    "input": {
+    },
+    "output": {
+        "accuracy_result":  { "type": "file", "format": "json" }
+    },
+    "bind": {
+        "seed_setting":     { "type": "environment_var", "format": "str", "environment_var_value": "42" },
+        "accuracy_cmd":     { "type": "environment_var", "format": "str", "environment_var_value": "accuracy" }
+    },
+    "connect": {
+        "model_file":        { "type": "file", "format": "any" },
+        "X_test_file":       { "type": "file", "format": "any" },
+        "pred_labels_file":  { "type": "file", "format": "any" },
+        "true_labels_file":  { "type": "file", "format": "any" }
+    },
+    "nodes": {
+        "model": {
+            "node": {"name": "nd_train", "version": "1"},
+            "input": {
+                "seed":        "seed_setting"
+            },
+            "output": {
+                "model":       "model_file",
+                "X_test":      "X_test_file",
+                "true_labels": "true_labels_file"
+            }
+        },
+        "predict": {
+            "node": {"name": "nd_predict", "version": "1"},
+            "input": {
+                "model":       "model_file",
+                "X_test":      "X_test_file"
+            },
+            "output": {
+                "pred_labels": "pred_labels_file"
+            }
+        },
+        "metric": {
+            "node": {"name": "nd_metric", "version": "1"},
+            "input": {
+                "cmd":         "accuracy_cmd",
+                "pred_labels": "pred_labels_file",
+                "true_labels": "true_labels_file"
+            },
+            "output": {
+                "result": "accuracy_result"
+            }
+        }
+    }
+};
+
+refine {
+    "name": "wf_accuracy_seed_1964",
+    "workflow": { "name": "wf_accuracy_seed_42", "version": "latest" },
+    "replace_bind": {
+        "seed_setting": { "type": "environment_var", "format": "str", "environment_var_value": "1964" }
+    }
+};

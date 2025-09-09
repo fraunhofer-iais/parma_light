@@ -1,0 +1,72 @@
+data {
+    "name": "dt_sklearn_dir",
+    "type": "directory",
+    "storage": "extern",
+    "hash": "false",
+    "format": "any", 
+    "user_path": "test/test_cmds/sklearn"
+};
+
+node {
+    "name": "nd_copy_directory",
+    "image": { "name": "directory_copy", "version": "1"},
+    "input":  {
+        "dir_in": { "type": "directory", "format": "any", "path_in_container": "/data/dir_in" }
+    },
+    "output": {
+        "dir_out": { "type": "directory", "format": "any", "path_in_container": "/data/dir_out"}
+    }
+};
+node {
+    "name": "nd_join_files",
+    "image": { "name": "directory_join", "version": "1"},
+    "input":  {
+        "dir_in": { "type": "directory", "format": "any", "path_in_container": "/data/dir_in" }
+    },
+    "output": {
+        "out": {"type": "file", "format": "any", "path_in_container": "/data/out"} }
+};
+
+workflow {
+    "name": "wf_process_directory",
+    "input": {
+    },
+    "output": {
+        "joined_files": { "type": "file", "format": "any" }
+    },
+    "bind": {
+        "sklearn": { "type": "directory", "format": "any", "data": {"name": "dt_sklearn_dir", "version": "latest"} }
+    },
+    "connect": {
+        "transport": { "type": "directory", "format": "any", "storage": "extern", "hash":"false", "user_path": "test/temp/sklearn" }
+    },
+    "nodes": {
+        "step1": {
+            "node": {
+                "name": "nd_copy_directory", "version": "latest"
+            },
+            "input": {
+                "dir_in": "sklearn"
+            },
+            "output": {
+                "dir_out": "transport"
+            }
+        },
+        "step2": {
+            "node": {
+                "name": "nd_join_files", "version": "latest"
+            },
+            "input": {
+                "dir_in": "transport"
+            },
+            "output": {
+                "out": "joined_files"
+            }
+        }
+    }
+};
+
+run {
+    "name": "run_process_directory",
+    "workflow": { "name": "wf_process_directory", "version": "latest" }
+};
