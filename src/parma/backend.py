@@ -253,7 +253,7 @@ def main() -> None:
     base_directory = base_directory / "datastore_parma"
     db.init_globals(base_directory)
 
-    app.run(port=8080)
+    app.run(host="0.0.0.0", port=8080)
 
     db.store_tables()
     db.remove_all_temp_directories()

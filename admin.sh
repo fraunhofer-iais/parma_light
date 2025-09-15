@@ -12,8 +12,7 @@ function init {
         rm -rf $PARMA_DIR/*
     elif [[ -d $PARMA_DIR ]]
     then
-        echo "parma datastore '$PARMA_DIR' exists. Exit 12"
-        exit 12
+        echo "parma datastore '$PARMA_DIR' exists. Init is ignored"
     else
         mkdir $PARMA_DIR
     fi
@@ -51,6 +50,24 @@ function make_image {
     docker build . -t $tag
 }
 
+function getOS {
+    OS=${OSTYPE//[0-9.-]*/}
+    case "$OS" in
+      linux)  echo "linux" ;;
+      darwin) echo "macos" ;;
+      msys)   echo "win" ;;
+      *)      echo "UNKNOWN" ;;
+    esac
+}
+
+function isWin {
+    [ $(getOS) == 'win' ]
+}
+
+function isLinux {
+    [ $(getOS) == 'linux' ]
+}
+
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [[ "$1" == '-q' ]];
@@ -84,8 +101,17 @@ while [[ $# -gt 0 ]]; do
                         $BASE_DIR/admin.sh -q image "$domain" "$dir_name" "1"
                     done ;;
 
-    docker)         echo 'NYI - exit 12'
-                    exit 12 ;;
+    source)         if $(isLinux)
+                    then
+                        source .venv/bin/activate
+                    fi
+                    if $(isWin)
+                    then
+                        source .venv/Scripts/activate
+                    fi ;;
+
+    dind-build)     docker build --no-cache -f docker/Dockerfile -t parma_light . ;;
+    dind-backend)   docker run -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock -ti parma_light ;;
 
     *)              echo "invalid command: $cmd - exit 4"
                     exit 4 ;;
