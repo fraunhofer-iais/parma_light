@@ -46,3 +46,8 @@ Commands:
     - you have to run the CLI (./admin.sh frontend) to send your commands to the backend
     - the data store is initialized (and not persisted) everytime when the container is started
     If you want to use dind not only for demonstration purposes, contact reinhard.budde AT iais.fraunhofer.de
+
+  assess
+    use uv to update the toml-file and uv.lock, then run
+    - pip-audit to create the bill-of-materials in file audit.md
+    - pip-licences to create the bill-of-materials in file licences.md with the 

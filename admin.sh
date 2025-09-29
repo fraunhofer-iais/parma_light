@@ -50,6 +50,13 @@ function make_image {
     docker build . -t $tag
 }
 
+function run_assess {
+    uv sync
+    uv lock
+    uv run pip-audit -f json | python -m json.tool >audit.json
+    uv run pip-licenses --from=mixed --format=markdown --output-file=licences.md
+}
+
 function getOS {
     OS=${OSTYPE//[0-9.-]*/}
     case "$OS" in
@@ -112,6 +119,8 @@ while [[ $# -gt 0 ]]; do
 
     dind-build)     docker build --no-cache -f docker/Dockerfile -t parma_light . ;;
     dind-backend)   docker run -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock -ti parma_light ;;
+
+    assess)         run_assess ;;
 
     *)              echo "invalid command: $cmd - exit 4"
                     exit 4 ;;
