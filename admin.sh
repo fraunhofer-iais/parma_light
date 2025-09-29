@@ -50,6 +50,14 @@ function make_image {
     docker build . -t $tag
 }
 
+function run_assess {
+    uv sync
+    uv lock
+    uv run pip-audit -f json | python -m json.tool >audit.json
+    uv run pip-licenses --from=mixed --format=json | python -m json.tool >licenses.json
+    uv run pip-licenses --from=mixed --format=markdown --output-file=licenses.md
+}
+
 function getOS {
     OS=${OSTYPE//[0-9.-]*/}
     case "$OS" in
@@ -101,17 +109,10 @@ while [[ $# -gt 0 ]]; do
                         $BASE_DIR/admin.sh -q image "$domain" "$dir_name" "1"
                     done ;;
 
-    source)         if $(isLinux)
-                    then
-                        source .venv/bin/activate
-                    fi
-                    if $(isWin)
-                    then
-                        source .venv/Scripts/activate
-                    fi ;;
-
     dind-build)     docker build --no-cache -f docker/Dockerfile -t parma_light . ;;
-    dind-backend)   docker run -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock -ti parma_light ;;
+    dind-run)       docker run -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock -ti parma_light ;;
+
+    assess)         run_assess ;;
 
     *)              echo "invalid command: $cmd - exit 4"
                     exit 4 ;;

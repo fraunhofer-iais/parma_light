@@ -16,6 +16,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+The SBOM togehther with potential vulnerabilities and license information are stored in files
+
+- audit.json (currently one vulnerability of pip:25.2 is known, that will not affect this software)
+- license.md and license.json
+
 ## Introduction
 
 This git repository contains an implementation of the Parma-Light platform.

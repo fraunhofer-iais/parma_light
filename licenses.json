@@ -1,0 +1,292 @@
+[
+    {
+        "License": "UNKNOWN",
+        "Name": "CacheControl",
+        "Version": "0.14.3"
+    },
+    {
+        "License": "UNKNOWN",
+        "Name": "Flask",
+        "Version": "3.1.1"
+    },
+    {
+        "License": "BSD License",
+        "Name": "Jinja2",
+        "Version": "3.1.6"
+    },
+    {
+        "License": "BSD License",
+        "Name": "MarkupSafe",
+        "Version": "3.0.2"
+    },
+    {
+        "License": "BSD License",
+        "Name": "Pygments",
+        "Version": "2.19.2"
+    },
+    {
+        "License": "BSD License",
+        "Name": "Werkzeug",
+        "Version": "3.1.3"
+    },
+    {
+        "License": "MIT License",
+        "Name": "annotated-types",
+        "Version": "0.7.0"
+    },
+    {
+        "License": "UNKNOWN",
+        "Name": "attrs",
+        "Version": "25.3.0"
+    },
+    {
+        "License": "MIT License",
+        "Name": "blinker",
+        "Version": "1.9.0"
+    },
+    {
+        "License": "BSD-2-Clause",
+        "Name": "boolean.py",
+        "Version": "5.0"
+    },
+    {
+        "License": "Mozilla Public License 2.0 (MPL 2.0)",
+        "Name": "certifi",
+        "Version": "2025.7.14"
+    },
+    {
+        "License": "MIT License",
+        "Name": "charset-normalizer",
+        "Version": "3.4.2"
+    },
+    {
+        "License": "BSD License",
+        "Name": "click",
+        "Version": "8.1.8"
+    },
+    {
+        "License": "BSD License",
+        "Name": "colorama",
+        "Version": "0.4.6"
+    },
+    {
+        "License": "Apache Software License",
+        "Name": "cyclonedx-python-lib",
+        "Version": "9.1.0"
+    },
+    {
+        "License": "Python Software Foundation License",
+        "Name": "defusedxml",
+        "Version": "0.7.1"
+    },
+    {
+        "License": "MIT License",
+        "Name": "exceptiongroup",
+        "Version": "1.3.0"
+    },
+    {
+        "License": "The Unlicense (Unlicense)",
+        "Name": "filelock",
+        "Version": "3.19.1"
+    },
+    {
+        "License": "BSD License",
+        "Name": "idna",
+        "Version": "3.10"
+    },
+    {
+        "License": "Apache Software License",
+        "Name": "importlib_metadata",
+        "Version": "8.7.0"
+    },
+    {
+        "License": "MIT License",
+        "Name": "iniconfig",
+        "Version": "2.1.0"
+    },
+    {
+        "License": "BSD License",
+        "Name": "itsdangerous",
+        "Version": "2.2.0"
+    },
+    {
+        "License": "BSD License",
+        "Name": "joblib",
+        "Version": "1.5.0"
+    },
+    {
+        "License": "MIT License",
+        "Name": "jsonschema",
+        "Version": "4.23.0"
+    },
+    {
+        "License": "UNKNOWN",
+        "Name": "jsonschema-specifications",
+        "Version": "2025.4.1"
+    },
+    {
+        "License": "Apache Software License",
+        "Name": "liccheck",
+        "Version": "0.9.2"
+    },
+    {
+        "License": "Apache-2.0",
+        "Name": "license-expression",
+        "Version": "30.4.4"
+    },
+    {
+        "License": "MIT License",
+        "Name": "markdown-it-py",
+        "Version": "3.0.0"
+    },
+    {
+        "License": "MIT License",
+        "Name": "mdurl",
+        "Version": "0.1.2"
+    },
+    {
+        "License": "Apache 2.0",
+        "Name": "msgpack",
+        "Version": "1.1.1"
+    },
+    {
+        "License": "BSD License",
+        "Name": "numpy",
+        "Version": "2.0.2"
+    },
+    {
+        "License": "MIT License",
+        "Name": "packageurl-python",
+        "Version": "0.17.5"
+    },
+    {
+        "License": "Apache Software License; BSD License",
+        "Name": "packaging",
+        "Version": "25.0"
+    },
+    {
+        "License": "Apache Software License",
+        "Name": "pip-api",
+        "Version": "0.0.34"
+    },
+    {
+        "License": "MIT",
+        "Name": "pip-requirements-parser",
+        "Version": "32.0.1"
+    },
+    {
+        "License": "Apache Software License",
+        "Name": "pip_audit",
+        "Version": "2.9.0"
+    },
+    {
+        "License": "MIT License",
+        "Name": "platformdirs",
+        "Version": "4.4.0"
+    },
+    {
+        "License": "MIT License",
+        "Name": "pluggy",
+        "Version": "1.6.0"
+    },
+    {
+        "License": "Apache Software License",
+        "Name": "py-serializable",
+        "Version": "2.1.0"
+    },
+    {
+        "License": "MIT License",
+        "Name": "pydantic",
+        "Version": "2.11.4"
+    },
+    {
+        "License": "MIT License",
+        "Name": "pydantic_core",
+        "Version": "2.33.2"
+    },
+    {
+        "License": "UNKNOWN",
+        "Name": "pyparsing",
+        "Version": "3.2.5"
+    },
+    {
+        "License": "MIT License",
+        "Name": "pytest",
+        "Version": "8.4.1"
+    },
+    {
+        "License": "MIT License\n        \n        Copyright (c) 2020 Gabriel de Marmiesse de Lussan\n        \n        Permission is hereby granted, free of charge, to any person obtaining a copy\n        of this software and associated documentation files (the \"Software\"), to deal\n        in the Software without restriction, including without limitation the rights\n        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n        copies of the Software, and to permit persons to whom the Software is\n        furnished to do so, subject to the following conditions:\n        \n        The above copyright notice and this permission notice shall be included in all\n        copies or substantial portions of the Software.\n        \n        THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n        SOFTWARE.\n        ",
+        "Name": "python-on-whales",
+        "Version": "0.76.1"
+    },
+    {
+        "License": "UNKNOWN",
+        "Name": "referencing",
+        "Version": "0.36.2"
+    },
+    {
+        "License": "Apache Software License",
+        "Name": "requests",
+        "Version": "2.32.4"
+    },
+    {
+        "License": "MIT License",
+        "Name": "rich",
+        "Version": "14.1.0"
+    },
+    {
+        "License": "MIT",
+        "Name": "rpds-py",
+        "Version": "0.24.0"
+    },
+    {
+        "License": "BSD License",
+        "Name": "scikit-learn",
+        "Version": "1.6.1"
+    },
+    {
+        "License": "BSD License",
+        "Name": "scipy",
+        "Version": "1.13.1"
+    },
+    {
+        "License": "BSD License",
+        "Name": "semantic-version",
+        "Version": "2.10.0"
+    },
+    {
+        "License": "Apache Software License",
+        "Name": "sortedcontainers",
+        "Version": "2.4.0"
+    },
+    {
+        "License": "BSD License",
+        "Name": "threadpoolctl",
+        "Version": "3.6.0"
+    },
+    {
+        "License": "MIT License",
+        "Name": "toml",
+        "Version": "0.10.2"
+    },
+    {
+        "License": "MIT License",
+        "Name": "typing-inspection",
+        "Version": "0.4.0"
+    },
+    {
+        "License": "UNKNOWN",
+        "Name": "typing_extensions",
+        "Version": "4.13.2"
+    },
+    {
+        "License": "UNKNOWN",
+        "Name": "urllib3",
+        "Version": "2.5.0"
+    },
+    {
+        "License": "UNKNOWN",
+        "Name": "zipp",
+        "Version": "3.23.0"
+    }
+]

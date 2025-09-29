@@ -37,7 +37,7 @@ Commands:
   dind-build
     build a docker images containing the parma_light backend. THIS IS FOR DEMONSTRATION PURPOSES!
 
-  dind-backend
+  dind-run
     run the docker image of the parma_light backend generated above. THIS IS FOR DEMONSTRATION PURPOSES!
     If you get a permission error for docker.sock, run the command
       chmod 666 /var/run/docker.sock
@@ -46,3 +46,9 @@ Commands:
     - you have to run the CLI (./admin.sh frontend) to send your commands to the backend
     - the data store is initialized (and not persisted) everytime when the container is started
     If you want to use dind not only for demonstration purposes, contact reinhard.budde AT iais.fraunhofer.de
+
+  assess
+    use uv to update the toml-file and uv.lock, then run
+    - pip-audit to create the bill-of-materials checking vulnerabilities in file audit.json
+    - pip-licences to create the bill-of-materials checking licenses of used packages
+      in file licenses.md and licenses.json 
