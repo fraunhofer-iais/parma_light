@@ -9,9 +9,9 @@ this documents describes
 
 ## Usage
 
-- the backend server is run by calling `./admin.sh backend`. This starts the backend server listening at port `8080`
-- then the CLI is run by calling `./admin.sh cli`. It enters into a toplevel loop, reading a command and then executing it by
-  calling the matching endpoint of the backend server.
+- the backend server is run by calling `./admin.sh --backend`. This starts the backend server listening at port `8080`
+- then the CLI is run by calling `./admin.sh --frontend`. It enters into a toplevel loop, reading a command and then executing
+  it by calling the matching endpoint of the backend server.
 
 ## Commands of the CLI
 

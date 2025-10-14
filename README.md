@@ -43,17 +43,18 @@ Parma-Light is a simple, experimental implementation of the platform published i
   + Windows: `source .venv/Scripts/activate`
   + Linux/MacOS: `source .venv/bin/activate`
 - `pytest test` - check the setup and that the branch is fine
-- Try to run the admin script `./admin.sh help`.
+- Try to run the admin script `./admin.sh --help`.
   If you get a "permission denied" error, you need to make the admin script executable: `chmod +x admin.sh`
 
 The setup is complete now. You can start to work with the platform
 
-- `./admin.sh images sklearn` - you need Docker images to work with. Generate them
-- `./admin.sh init` - initialize the data base
-- `./admin.sh backend`
-- `./admin.sh frontend` - start the CLI in **another** shell **and activate the virtual environment**
+- `./admin.sh --images sklearn` - you need Docker images to work with. Generate them
+- `./admin.sh --init` - initialize the data base
+- `./admin.sh --backend`
+- `./admin.sh --frontend` - start the CLI in **another** shell **and activate the virtual environment before the start**
 - in the CLI execute commands as:
-  - `test_data example:sklearn;` - to load test data. This takes some time :-). The command executed can be found in the file `example/sklearn/demo.txt`. Some nodes and workflows are defined. Two workflows are run.
+  - `test_data example:sklearn;` - to load test data. This takes some time :-). The command executed can be found in the file
+    `example/sklearn/demo.txt`. Some nodes and workflows are defined. Two workflows are run.
   - `login sklearn;` - you must be logged in to execute commands
   - `view workflow;` or `view run;` to see results of loading the test data.
   - `view data_of run_predict_and_metric latest;` or `view log_of run_predict_and_metric latest;` or `cat result_file latest;`

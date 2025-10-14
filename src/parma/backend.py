@@ -2,6 +2,9 @@ import json
 import sys
 import os
 from pathlib import Path
+import argparse
+import time
+import toml
 
 import intern.helper as h
 import intern.dbc as dbc
@@ -17,9 +20,10 @@ import component.workflow as wf
 import component.run as run
 
 from flask import Flask, request, jsonify
+from waitress import serve
+
 
 app = Flask(__name__)
-server_pid = os.getpid()
 
 
 @app.errorhandler(Exception)
@@ -236,28 +240,54 @@ def view_table():
     return jsonify(result)
 
 
+def load_toml_config(config_file: Path) -> dict:
+    """
+    Load configuration from TOML file.
+
+    Args:
+        config_file (Path): Path to the configuration file
+
+    Returns:
+        dict: Configuration dictionary
+    """
+    try:
+        return toml.load(config_file)
+    except Exception as e:
+        print(f"Exit 12. Error loading toml-config file: {e}")
+        exit(12)
+
 def main() -> None:
     """
     Main entry point for the parma backend.
-    Initializes the database, handles calls to end points.
-    When terminared, store all tables on disk and remove all temporary directories.
-
-    Returns:
-        None
     """
-    base_directory : Path = None
-    if len(sys.argv) >= 2:
-        base_directory = Path(sys.argv[1]).resolve()
-    else:
-        base_directory = Path(os.getcwd()).resolve()
-    base_directory = base_directory / "datastore_parma"
-    db.init_globals(base_directory)
+    parser = argparse.ArgumentParser(description='Parma Light Backend Server')
+    parser.add_argument('-c', '--config', help='Toml configuration file path', default='parma_light.toml')
+    args = parser.parse_args()
 
-    app.run(host="0.0.0.0", port=8080)
+    # Load toml configuration
+    toml_config_file = Path(args.config)
+    toml_config = load_toml_config(toml_config_file)
 
-    db.store_tables()
-    db.remove_all_temp_directories()
-    ruc.write_history_file()
+    # Get the store configuration
+    entity_store = toml_config.get('store', {}).get('entity_store', './datastore_parma/entity_store')
+    data_dir = toml_config.get('store', {}).get('data_dir', './datastore_parma/data_dir')
+    temp_dir = toml_config.get('store', {}).get('temp_dir', './datastore_parma/temp_dir')
+    db.init_globals(entity_store, data_dir, temp_dir)
+
+    # Get host and port from config or use defaults
+    host = toml_config.get('server', {}).get('host', '0.0.0.0')
+    port = toml_config.get('server', {}).get('port', 8080)
+    development_server = toml_config.get('server', {}).get('development_server', False)
+    try:
+        if development_server:
+            app.run(host=host, port=port)
+        else:
+            msg.print({"msg": "PROD_SERVER", "host": host, "port": port})
+            serve(app, host=host, port=port)
+    finally:
+        db.store_tables()
+        db.remove_all_temp_directories()
+        ruc.write_history_file()
 
 
 if __name__ == "__main__":

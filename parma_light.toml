@@ -1,0 +1,18 @@
+# Parma Light Configuration
+
+# data storage
+[store]
+entity_store = "./datastore_parma/entity_store"
+data_dir = "./datastore_parma/data_dir"
+temp_dir = "./datastore_parma/temp_dir"
+
+# Server configuration
+[server]
+host = "0.0.0.0"
+port = 8080
+development_server = false
+
+# Logging configuration
+[logging]
+level = "INFO"
+file = "parma_light.log"

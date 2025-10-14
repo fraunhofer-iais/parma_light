@@ -78,4 +78,5 @@
 | typing-inspection         | 0.4.0     | MIT License                                                                            |
 | typing_extensions         | 4.13.2    | UNKNOWN                                                                                |
 | urllib3                   | 2.5.0     | UNKNOWN                                                                                |
+| waitress                  | 3.0.2     | Zope Public License                                                                    |
 | zipp                      | 3.23.0    | UNKNOWN                                                                                |

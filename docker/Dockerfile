@@ -11,7 +11,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
-COPY admin-help.txt admin.sh pyproject.toml README.md ./
+COPY admin-help.txt admin.sh pyproject.toml parma_light.toml README.md ./
 COPY example ./example
 COPY initdata ./initdata
 COPY resources ./resources
@@ -24,5 +24,5 @@ RUN chmod +x admin.sh && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     uv sync
 
-ENTRYPOINT ["/bin/bash","./admin.sh","init","source","backend"]
+ENTRYPOINT ["/bin/bash","./admin.sh","-q","--init","--source","--backend"]
 CMD []

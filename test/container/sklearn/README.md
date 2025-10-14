@@ -2,7 +2,7 @@
 
 - train: builds a simple regression model,
   - input is:
-    - the seed for a random number generator, needed to generate train and test data
+    - the seed for a random number generator, needed to generate training and test data
   - output is:
     - the model
     - the test labels
@@ -22,4 +22,4 @@
     - a JSON object with the metric values
 - train_and_predict: used in tests
 
-create all images by calling ```./admin.sh images sklearn```
+create all images by calling ```./admin.sh --images sklearn```

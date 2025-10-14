@@ -48,7 +48,6 @@ messages_en: Dict[str, str] = {
     "VALIDATION_ERROR": "error when validating \"{definition_of}\": \"{error}\".",
     "WORKFLOW_CHANNEL_UNUSED": "the workflow channel \"{channel_name}\" is not used in a node.",
     
-    "BASE_DIRECTORY": "parma base directory is: {name}",
     "CHANNEL_NOT_BOUND": "WARNING: {direction} channel {name} of {what} {hash} not bound",
     "COMMAND_IGNORED": "command ignored. Error message is: \"{message_text}\"",
     "DOCKER_ACCESS_RETRY": "retrying access to docker (internal problem of python_on_whales)",
@@ -59,8 +58,10 @@ messages_en: Dict[str, str] = {
     "NO_LOG_DATA": "no logging data found",
     "NUMBER_DATA_CREATED": "the run created {number} new data entity/ies",
     "NUMBER_HEX_DIGITS": "the number of hex digits to uniquely identify a hash is {number} now",
+    "PROD_SERVER": "Starting production server on {host}:{port}",
     "RM_TMPDIR": "all temporary directories removed",
     "STORED_TABLE": "table {name} is stored",
+    "STORE": "entities: {entity_store}\ndata: {data_dir}\ntemp: {temp_dir}",
     "SUCCESS": "command was successful"
 }
 

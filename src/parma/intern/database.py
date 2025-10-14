@@ -4,38 +4,55 @@ from pathlib import Path
 import random
 import shutil
 import string
+import threading
 
 from intern import msg
 import intern.helper as h
 import intern.dbc as dbc
 
-datastore_dir = None
+entity_store = None
 data_dir = None
 temp_dir = None
 tables = None
 
+# Global mutex
+_table_mutex = threading.Lock()
+
+# these data structures must be guarded by a mutex to avoid inconsistencies introduced by concurrent flask service calls
 _user = None
 _data = None
 _node = None
 _workflow = None
 _run = None
+# the current length that is needed to identify a SHA-1 hash uniquely, must be guarded by a mutex
+_min_unique_prefix_length = None # current length that is needed to identify a SHA-1 hash uniquely
+_last_min_unique_prefix_length = None # the last value of _min_unique_prefix_length, for user messages
 
-def init_globals(parma_base_directory: Path) -> None:
+def init_globals(entity_store_config: str, data_dir_config: str, temp_dir_config: str) -> None:
     """
     Initializes global variables and loads all database tables from JSON files.
 
     Args:
-        parma_base_directory (str): The base directory where the database JSON files are stored
-            and the directories for data files and temp files are found.
+        entity_store (str): Path to the entity store directory where JSON files are stored
+        data_dir_config (str): Path to the data directory
+        temp_dir_config (str): Path to the temporary directory
 
     Returns:
         None
     """
-    global datastore_dir, data_dir, temp_dir, _user, _data, _node, _workflow, _run, tables
-    datastore_dir = parma_base_directory
-    data_dir = datastore_dir / "data_dir"
-    temp_dir = datastore_dir / "temp_dir"
-    msg.print({"msg": "BASE_DIRECTORY", "name": datastore_dir})
+    global entity_store, data_dir, temp_dir, _user, _data, _node, _workflow, _run, tables
+    
+    # Convert paths to absolute Path objects (otherwise Docker will complain when mounting files from the directories)
+    entity_store = Path(entity_store_config).absolute()
+    data_dir = Path(data_dir_config).absolute()
+    temp_dir = Path(temp_dir_config).absolute()
+
+    # Create directories if they don't exist
+    entity_store.mkdir(parents=True, exist_ok=True)
+    data_dir.mkdir(parents=True, exist_ok=True)
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    msg.print({"msg": "STORE", "entity_store": str(entity_store), "data_dir": str(data_dir), "temp_dir": str(temp_dir)})
 
     _user = _load_json("user")
     _data = _load_json("data")
@@ -52,26 +69,11 @@ def init_globals(parma_base_directory: Path) -> None:
     }
 
 
-def store_tables() -> None:
-    """
-    Stores all tables into their respective JSON files in the base directory.
-
-    Returns:
-        None
-    """
-    for name, dictionary in tables.items():
-        file_path = os.path.join(datastore_dir, f"{name}.json")
-        h.set_file_writable(file_path)
-        with open(file_path, "w") as f:
-            json.dump(dictionary, f, indent=4, sort_keys=True)
-        h.set_file_readonly(file_path)
-        msg.print({"msg": "STORED_TABLE", "name": name})
-
-
 def enrich_and_store_in_table(table_dict: dict, entry: dict, logged_in_user: str) -> str:
     """
     Stores an entry (user, data, node, workflow, run) in its table.
     Creates the _version, _date, _hash_of_creating_user metadata properties.
+    Thread-safe using mutex lock.
 
     Args:
         table_dict (dict): The table to store the entry into.
@@ -87,8 +89,10 @@ def enrich_and_store_in_table(table_dict: dict, entry: dict, logged_in_user: str
     entry["_date"] = h.get_date()
     entry["_hash_of_creating_user"] = logged_in_user
     hash = h.make_git_like_hash_of_json(entry)
-    table_dict[hash] = entry
-    _min_unique_prefix_length = None # recompute when needed in the future
+    
+    with _table_mutex:
+        table_dict[hash] = entry
+        _min_unique_prefix_length = None  # recompute when needed in the future
     return hash
 
 
@@ -102,14 +106,24 @@ def _load_json(path: str) -> dict:
     Returns:
         dict: The loaded JSON data.
     """
-    with open(datastore_dir / (path + ".json"), 'r') as file:
+    with open(entity_store / (path + ".json"), 'r') as file:
         return json.load(file)
 
 
-# the current length that is needed to identify a SHA-1 hash uniquely
-_min_unique_prefix_length = None
-_last_min_unique_prefix_length = None
-_current_hashes = None
+def store_tables() -> None:
+    """
+    Stores all tables into their respective JSON files in the base directory.
+
+    Returns:
+        None
+    """
+    for name, dictionary in tables.items():
+        file_path = os.path.join(entity_store, f"{name}.json")
+        h.set_file_writable(file_path)
+        with open(file_path, "w") as f:
+            json.dump(dictionary, f, indent=4, sort_keys=True)
+        h.set_file_readonly(file_path)
+        msg.print({"msg": "STORED_TABLE", "name": name})
 
 
 def get_min_unique_prefix_length() -> int:
@@ -119,51 +133,47 @@ def get_min_unique_prefix_length() -> int:
     Returns:
         int: The minimum unique prefix length.
     """
-    _opt_recompute_min_unique_prefix_length()
-    return _min_unique_prefix_length
+    return _opt_recompute_min_unique_prefix_length_and_return_it()
 
 
-def _opt_recompute_min_unique_prefix_length() -> None:
+def _opt_recompute_min_unique_prefix_length_and_return_it() -> None:
     """
-    Recomputes the minimum unique prefix length if necessary.
+    Recomputes the minimum unique prefix length if necessary. Return the value.
+    Thread-safe using the table mutex.
 
     Returns:
         None
     """
-    global _min_unique_prefix_length, _last_min_unique_prefix_length, _current_hashes
-    if not _min_unique_prefix_length:
-        _current_hashes = _collect_hashes_from_db()
-        len = _compute_min_unique_prefix_length(_current_hashes)
-        len = len if len >= 6 else 6
-        _min_unique_prefix_length = len if len % 2 == 0 else len + 1
-        if _last_min_unique_prefix_length and _min_unique_prefix_length != _last_min_unique_prefix_length:
-            msg.print({"msg":"NUMBER_HEX_DIGITS", "number": _min_unique_prefix_length})
-            _last_min_unique_prefix_length = _min_unique_prefix_length
+    global _min_unique_prefix_length, _last_min_unique_prefix_length
+    
+    with _table_mutex:
+        if not _min_unique_prefix_length:
+            _current_hashes = _collect_hashes_from_db()
+            len = _compute_min_unique_prefix_length(_current_hashes)
+            len = len if len >= 6 else 6
+            _min_unique_prefix_length = len if len % 2 == 0 else len + 1
+            if _last_min_unique_prefix_length and _min_unique_prefix_length != _last_min_unique_prefix_length:
+                msg.print({"msg":"NUMBER_HEX_DIGITS", "number": _min_unique_prefix_length})
+                _last_min_unique_prefix_length = _min_unique_prefix_length
+        return _min_unique_prefix_length
 
 
-def get_hash_from_prefix(prefix: str, table: dict = None) -> str:
+def get_hash_from_prefix(prefix: str, table: dict) -> str:
     """
     Returns the full hash from current_hashes that starts with the given prefix.
     If not exactly one match is found, raises an error.
 
     Args:
         prefix (str): The prefix of the hash.
-        table (dict, optional): The table to search in. If None, searches all current hashes.
+        table (dict): The table to search in.
 
     Returns:
         str: The full hash matching the prefix.
     """
-    if table == None:
-        _opt_recompute_min_unique_prefix_length()
-        matches = [h for h in _current_hashes if h.startswith(prefix)]
-        if not matches or len(matches) > 1:
-            dbc.raise_error({"msg": "INVALID_HASH", "prefix": prefix})
-        return matches[0]
-    else:
-        matches = [h for h in table.keys() if h.startswith(prefix)]
-        if not matches or len(matches) > 1:
-            dbc.raise_error({"msg": "INVALID_HASH", "prefix": prefix})
-        return matches[0]
+    matches = [h for h in table.keys() if h.startswith(prefix)]
+    if not matches or len(matches) > 1:
+        dbc.raise_error({"msg": "INVALID_HASH", "prefix": prefix})
+    return matches[0]
 
 
 def shrink_hash(hash: str) -> str:

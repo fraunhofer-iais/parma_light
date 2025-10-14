@@ -310,6 +310,11 @@
             "vulns": []
         },
         {
+            "name": "waitress",
+            "version": "3.0.2",
+            "vulns": []
+        },
+        {
             "name": "wcwidth",
             "version": "0.2.14",
             "vulns": []
