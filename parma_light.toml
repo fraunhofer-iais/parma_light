@@ -10,7 +10,14 @@ temp_dir = "./datastore_parma/temp_dir"
 [server]
 host = "0.0.0.0"
 port = 8080
-development_server = false
+
+# for server select:
+#   "waitress", e.g. WSGI server for windows & linux, fully Python
+#   "development", e.g. local debugging, debugger with breakpoints behave strange
+#   "development_debug", e.g. flask with debug=True, debugger with breakpoints work, 
+#                             but note: sequential execution, one flask request after the previous terminated
+# you cannot use gunicorn (it uses worker processes and not worker threads). We need sharing of data structures
+server = "waitress"
 
 # Logging configuration
 [logging]

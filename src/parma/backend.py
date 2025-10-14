@@ -1,9 +1,7 @@
-import json
-import sys
-import os
+import signal
 from pathlib import Path
 import argparse
-import time
+import sys
 import toml
 
 import intern.helper as h
@@ -20,10 +18,10 @@ import component.workflow as wf
 import component.run as run
 
 from flask import Flask, request, jsonify
-from waitress import serve
 
 
 app = Flask(__name__)
+cleanup_has_been_executed = False
 
 
 @app.errorhandler(Exception)
@@ -255,11 +253,14 @@ def load_toml_config(config_file: Path) -> dict:
     except Exception as e:
         print(f"Exit 12. Error loading toml-config file: {e}")
         exit(12)
+    
 
 def main() -> None:
     """
     Main entry point for the parma backend.
     """
+    global cleanup_has_been_executed
+    
     parser = argparse.ArgumentParser(description='Parma Light Backend Server')
     parser.add_argument('-c', '--config', help='Toml configuration file path', default='parma_light.toml')
     args = parser.parse_args()
@@ -277,12 +278,19 @@ def main() -> None:
     # Get host and port from config or use defaults
     host = toml_config.get('server', {}).get('host', '0.0.0.0')
     port = toml_config.get('server', {}).get('port', 8080)
-    development_server = toml_config.get('server', {}).get('development_server', False)
+    development_server = toml_config.get('server', {}).get('server', 'waitress')
+
     try:
-        if development_server:
+        if development_server == 'development':
             app.run(host=host, port=port)
+        elif development_server == 'development_debug':
+            app.run(host=host, port=port, debug=True)
+        elif development_server == 'waitress':
+            from waitress import serve
+            msg.print({"msg": "PROD_SERVER", "wsgi": "waitress", "host": host, "port": port})
+            serve(app, host=host, port=port)
         else:
-            msg.print({"msg": "PROD_SERVER", "host": host, "port": port})
+            msg.print({"msg": "INVALID_PROPERTY", "property": "server", "replacement": 'development'})
             serve(app, host=host, port=port)
     finally:
         db.store_tables()
