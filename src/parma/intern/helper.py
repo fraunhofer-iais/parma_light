@@ -3,14 +3,37 @@
 import hashlib
 import json
 import datetime
+from pathlib import Path
 import re
 import jsonschema
+import toml
 from python_on_whales import docker
 from python_on_whales import DockerException
 import os
 import stat
+import logging
 from intern import msg
 import intern.dbc as dbc
+
+
+logger = logging.getLogger(__name__)
+
+
+def load_toml_config(config_file: Path) -> dict:
+    """
+    Load configuration from TOML file.
+
+    Args:
+        config_file (Path): Path to the configuration file
+
+    Returns:
+        dict: Configuration dictionary
+    """
+    try:
+        return toml.load(config_file)
+    except Exception as e:
+        print(f"Exit 12. Error loading toml-config file: {e}")
+        exit(12)
 
 
 def set_file_readonly(file_path: str) -> None:
@@ -140,10 +163,10 @@ def get_docker_image_digest(image: dict) -> str:
             if not image_info.id:
                 dbc.raise_error({"msg": "IMAGE_PROBLEM", "image_name": image_name_to_check}, user_error=False)
             if counter > 1:
-                msg.print({"msg": "DOCKER_ACCESS_SUCCEEDED"})
+                msg.log(logger.info, {"msg": "DOCKER_ACCESS_SUCCEEDED"})
             return _get_sha256_image_digest(image_info.id, image_name_to_check)
         except DockerException:
-            msg.print({"msg": "DOCKER_ACCESS_RETRY"})
+            msg.log(logger.error, {"msg": "DOCKER_ACCESS_RETRY"})
     dbc.raise_error({"msg": "IMAGE_PROBLEM", "image_name": image_name_to_check}, user_error=False)
 
 
@@ -170,19 +193,19 @@ def check_that_node_channels_are_bound(
             for node_channel_name in node_used["input"]:
                 if node_channel_name not in node["input"]:
                     node_hash = node["_hash_of_node_def"]
-                    msg.print({"msg": "CHANNEL_NOT_BOUND", "name": node_channel_name, "hash": node_hash, "direction": "input", "what": "node"})
+                    msg.log(logger.error, {"msg": "CHANNEL_NOT_BOUND", "name": node_channel_name, "hash": node_hash, "direction": "input", "what": "node"})
             for node_channel_name in node_used["output"]:
                 if node_channel_name not in node["output"]:
                     node_hash = node["_hash_of_node_def"]
-                    msg.print({"msg": "CHANNEL_NOT_BOUND", "name": node_channel_name, "hash": node_hash, "direction": "output", "what": "node"})
+                    msg.log(logger.error, {"msg": "CHANNEL_NOT_BOUND", "name": node_channel_name, "hash": node_hash, "direction": "output", "what": "node"})
         elif "_hash_of_workflow_def" in node:
             node_used = get_workflow_by_hash(node["_hash_of_workflow_def"])
             for node_channel_name in node_used["input"]:
                 if node_channel_name not in node["input"]:
-                    msg.print({"msg": "CHANNEL_NOT_BOUND", "name": node_channel_name, "hash": node_hash, "direction": "input", "what": "sub workflow"})
+                    msg.log(logger.error, {"msg": "CHANNEL_NOT_BOUND", "name": node_channel_name, "hash": node_hash, "direction": "input", "what": "sub workflow"})
             for node_channel_name in node_used["output"]:
                 if node_channel_name not in node["output"]:
-                    msg.print({"msg": "CHANNEL_NOT_BOUND", "name": node_channel_name, "hash": node_hash, "direction": "output", "what": "sub workflow"})
+                    msg.log(logger.error, {"msg": "CHANNEL_NOT_BOUND", "name": node_channel_name, "hash": node_hash, "direction": "output", "what": "sub workflow"})
 
 
 def opt_hash_by_key_value_and_version(dict: dict, key_value: str, version: str) -> str:

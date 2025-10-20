@@ -2,6 +2,7 @@ import os
 import copy
 from python_on_whales import docker
 import subprocess
+import logging
 import intern.dbc as dbc
 import intern.helper as h
 import intern.database as db
@@ -9,6 +10,9 @@ import intern.msg as msg
 import component.data as d
 import component.node as n
 import component.workflow as wf
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_run_hash_by_referer(referer: dict) -> str:
@@ -70,12 +74,12 @@ def run_workflow(run_def: dict, channel_bindings: dict, logged_in_user: str) -> 
     workflow = {}
     run["name"] = run_def["name"]
     run["_hash_of_workflow"] = hash_of_workflow
-    _add_to_log(run, f"*** workflow {run['name']} started ***", print_message=True)
+    _add_to_log(run, f"*** workflow {run['name']} started ***", log_message=True)
     h.check_that_node_channels_are_bound(run["nodes"], n.get_node_by_hash, wf.get_workflow_by_hash)
     
     result = True
     for node_name in run["_topological_order"]:
-        _add_to_log(run, f"node: {node_name}", print_message=True)
+        _add_to_log(run, f"node: {node_name}", log_message=True)
         node = run["nodes"][node_name]
         if "node" in node:  # a terminal node, a docker image
             result = _run_terminal_node(node, run, channel_bindings, logged_in_user)
@@ -89,13 +93,13 @@ def run_workflow(run_def: dict, channel_bindings: dict, logged_in_user: str) -> 
             data_bindings[channel] = channel_bindung["hash_of_data"]
     run["_channel_bindings"] = data_bindings
     number_new_data_entities = len(data_bindings)
-    msg.print({"msg": "NUMBER_DATA_CREATED", "number": number_new_data_entities})
+    msg.log(logger.info, {"msg": "NUMBER_DATA_CREATED", "number": number_new_data_entities})
     if result:
         run["_success"] = True
-        _add_to_log(run, f"*** workflow {run['name']} finished successfully ***", print_message=True)
+        _add_to_log(run, f"*** workflow {run['name']} finished successfully ***", log_message=True)
     else:
         run["_success"] = False
-        _add_to_log(run, f"*** workflow {run['name']} cancelled due to errors ***", print_message=True)
+        _add_to_log(run, f"*** workflow {run['name']} cancelled due to errors ***", log_message=True)
     return db.enrich_and_store_in_table(db._run, run, logged_in_user)
 
 def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings: dict, logged_in_user: str) -> bool:
@@ -338,17 +342,17 @@ def _prepare_output_directory(path: str) -> None:
     if not os.path.exists(path):
         os.makedirs(path)
 
-def _add_to_log(run: dict, message: str, print_message: bool = True) -> None:
+def _add_to_log(run: dict, message: str, log_message: bool = True) -> None:
     """
     Adds a message to the log of a run entry.
 
     Args:
         run (dict): The run entry.
         message (str): The message to add to the log.
-        print_message (bool): If True, also print the message to stdout.
+        print_message (bool): If True, also log the message.
     """
     if "_log" not in run:
         run["_log"] = []
     run["_log"].append(message)
-    if print_message:
-        print(message)
+    if log_message:
+        logger.info(message)

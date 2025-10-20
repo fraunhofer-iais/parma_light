@@ -2,9 +2,9 @@
 
 # data storage
 [store]
-entity_store = "./datastore_parma/entity_store"
-data_dir = "./datastore_parma/data_dir"
-temp_dir = "./datastore_parma/temp_dir"
+entity_store = "/app/datastore_parma/entity_store"
+data_dir = "/app/datastore_parma/data_dir"
+temp_dir = "/app/datastore_parma/temp_dir"
 
 # Server configuration
 [server]
@@ -22,7 +22,7 @@ server = "waitress"
 # Logging configuration
 [logging]
 level = "INFO"
-file = "parma_light.log"
+file = "/app/parma_light.log"
 
 # History of user commands issued in the frontend
 [history]

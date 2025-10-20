@@ -1,28 +1,22 @@
 import os
 import platform
-import sys
 from typing import Optional
 
 from intern import msg
 
-HISTORY_FILE: Optional[str] = None
-WINDOWS: bool = False
+history_file: Optional[str] = None
+WINDOWS = True if os.name == 'nt' or platform.system() == 'Windows' else False
 
-# Check if the system is Windows
-if os.name == 'nt' or platform.system() == 'Windows':
-    WINDOWS = True
-else:
-    WINDOWS = False
-    import readline
-
-if not WINDOWS:
-    # Configure readline for history and editing
-    HISTORY_FILE = os.path.expanduser("~/.parma_cli_history")
-    try:
-        readline.read_history_file(HISTORY_FILE)  # type: ignore
-    except FileNotFoundError:
-        pass
-    readline.set_history_length(1000)  # type: ignore
+def init(history_file_from_properties):
+    if not WINDOWS:
+        # Configure readline for history and editing
+        import readline
+        history_file = history_file_from_properties
+        try:
+            readline.read_history_file(history_file)  # type: ignore
+        except FileNotFoundError:
+            pass
+        readline.set_history_length(1000)  # type: ignore
 
 
 def write_history_file() -> None:
@@ -34,8 +28,8 @@ def write_history_file() -> None:
         None
     """
     if not WINDOWS:
-        readline.write_history_file(HISTORY_FILE)  # type: ignore
-        msg.print({"msg": "HISTORY_WRITTEN", "file": HISTORY_FILE})
+        readline.write_history_file(history_file)  # type: ignore
+        msg.print({"msg": "HISTORY_WRITTEN", "file": history_file})
 
 
 def read_user_command() -> str:

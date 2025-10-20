@@ -1,0 +1,61 @@
+name: create docker image
+
+on:
+  push:
+    tags:
+      - 'v*'  # Run on any tag that starts with 'v'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          
+      - name: Install dependencies
+        run: |
+          uv sync
+          
+      - name: Run tests
+        run: |
+          source .venv/bin/activate
+          pytest
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Get tag name
+        id: get_tag
+        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
+      - name: Build Docker image
+        run: |
+          chmod +x ./admin.sh
+          ./admin.sh --dind-build
+          
+      - name: Push Docker image
+        run: |
+          # Tag with version and latest
+          docker tag parma_light:latest ${{ secrets.DOCKERHUB_USERNAME }}/parma_light:${{ env.TAG }}
+          docker tag parma_light:latest ${{ secrets.DOCKERHUB_USERNAME }}/parma_light:latest
+          # Push both tags
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/parma_light:${{ env.TAG }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/parma_light:latest

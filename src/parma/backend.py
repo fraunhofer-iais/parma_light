@@ -1,14 +1,11 @@
-import signal
 from pathlib import Path
 import argparse
-import sys
-import toml
+import logging
 
 import intern.helper as h
 import intern.dbc as dbc
 import intern.msg as msg
 import intern.database as db
-import intern.read_user_cmd as ruc
 import intern.view as v
 
 import component.user as user
@@ -21,7 +18,6 @@ from flask import Flask, request, jsonify
 
 
 app = Flask(__name__)
-cleanup_has_been_executed = False
 
 
 @app.errorhandler(Exception)
@@ -238,42 +234,33 @@ def view_table():
     return jsonify(result)
 
 
-def load_toml_config(config_file: Path) -> dict:
-    """
-    Load configuration from TOML file.
-
-    Args:
-        config_file (Path): Path to the configuration file
-
-    Returns:
-        dict: Configuration dictionary
-    """
-    try:
-        return toml.load(config_file)
-    except Exception as e:
-        print(f"Exit 12. Error loading toml-config file: {e}")
-        exit(12)
-    
-
 def main() -> None:
     """
     Main entry point for the parma backend.
     """
-    global cleanup_has_been_executed
-    
     parser = argparse.ArgumentParser(description='Parma Light Backend Server')
     parser.add_argument('-c', '--config', help='Toml configuration file path', default='parma_light.toml')
     args = parser.parse_args()
 
     # Load toml configuration
     toml_config_file = Path(args.config)
-    toml_config = load_toml_config(toml_config_file)
+    toml_config = h.load_toml_config(toml_config_file)
+
+    # init logging
+    logging_level = toml_config.get('logging', {}).get('level', logging.INFO)
+    logging_file = toml_config.get('logging', {}).get('file', 'parma_light.log')
+    logging.basicConfig(format='%(asctime)s - %(name)-20s - %(levelname)-8s - %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        filename=logging_file,
+                        encoding='utf-8',
+                        level=logging_level)
+    logger = logging.getLogger(__name__)
 
     # Get the store configuration
     entity_store = toml_config.get('store', {}).get('entity_store', './datastore_parma/entity_store')
     data_dir = toml_config.get('store', {}).get('data_dir', './datastore_parma/data_dir')
     temp_dir = toml_config.get('store', {}).get('temp_dir', './datastore_parma/temp_dir')
-    db.init_globals(entity_store, data_dir, temp_dir)
+    db.init(entity_store, data_dir, temp_dir)
 
     # Get host and port from config or use defaults
     host = toml_config.get('server', {}).get('host', '0.0.0.0')
@@ -287,15 +274,16 @@ def main() -> None:
             app.run(host=host, port=port, debug=True)
         elif development_server == 'waitress':
             from waitress import serve
-            msg.print({"msg": "PROD_SERVER", "wsgi": "waitress", "host": host, "port": port})
+            msg.log(logger.info, {"msg": "PROD_SERVER", "wsgi": "waitress", "host": host, "port": port})
             serve(app, host=host, port=port)
         else:
-            msg.print({"msg": "INVALID_PROPERTY", "property": "server", "replacement": 'development'})
+            from waitress import serve
+            msg.log(logger.error, {"msg": "INVALID_PROPERTY", "property": "server", "replacement": 'waitress'})
+            msg.log(logger.info, {"msg": "PROD_SERVER", "wsgi": "waitress", "host": host, "port": port})
             serve(app, host=host, port=port)
     finally:
         db.store_tables()
         db.remove_all_temp_directories()
-        ruc.write_history_file()
 
 
 if __name__ == "__main__":

@@ -28,13 +28,20 @@ Commands:
     create all images for the 'domain' given. 'domain' is the name of a directory in 'test/container'.
 
   --dind-build
-    build a docker images containing the parma_light backend. THIS IS FOR DEMONSTRATION PURPOSES!
+    build a docker images containing the parma_light backend.
 
-  --dind-run
-    run the docker image of the parma_light backend generated above. THIS IS FOR DEMONSTRATION PURPOSES!
+  --dind-run -di {docker-image} -ds {absolute-path-to-datastore_parma} -log {absolute-path-to-log_file}
+    run the docker image of the parma_light backend generated above.
+    -di defines the (optional) name of the parma_light docker image, default is 'parma_light'
+    -ds defines the (optional) ABSOLUTE path to the directory of the datastore on the local machine for the entity_store,
+        the data_dir and the temp_dir. If you want to keep the datastore to survive a docker run, you MUST use this parameter.
+    - log defines the (optional) absolute path to the log file on the local machine.
+        If you want to keep the logging data to survive a docker run, you MUST use this parameter.
+
     If you get a permission error for docker.sock, run the command
       chmod 666 /var/run/docker.sock
     This is a security problem. Use never in production systems! Read about 'dind' and the security implications.
+
     Notes:
     - you have to run the CLI (./admin.sh --frontend) to send your commands to the backend
     - the data store is initialized (and not persisted) everytime when the container is started

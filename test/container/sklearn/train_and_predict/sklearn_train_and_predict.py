@@ -1,5 +1,6 @@
 import json
 import pickle
+import sys
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
@@ -40,6 +41,7 @@ def main():
         print("Finished to generate the model and predict values")
     except Exception as e:
         print(f"An error occurred while generating the model or predicting values: {e}")
+        sys.exit(12)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,12 @@
+import argparse
 import json
+from pathlib import Path
 import requests
 
 import intern.helper as h
 import intern.dbc as dbc
 import intern.msg as msg
-import intern.database as db
 import intern.read_user_cmd as ruc
-import intern.view as v
 
 
 BASE_URL: str = "http://localhost:8080"
@@ -67,6 +67,9 @@ def run_a_command(input: str, log: bool) -> bool:
                 msg.print({"msg": "SUCCESS"})
         elif cmd == "logout":
             _authentification_token = None
+            msg.print({"msg": "SUCCESS"})
+        elif cmd == "locale":
+            msg.set_locale(raw_param)
             msg.print({"msg": "SUCCESS"})
         # the following commands are used for debugging
         elif cmd == "test_data":
@@ -222,23 +225,6 @@ def _print_table(table: list[list]) -> None:
         print(" | ".join(f"{item:<{col_widths[i]}}" for i, item in enumerate(row)))
 
 
-def _print_log(log_data: list) -> None:
-    """
-    Prints the log entries of a workflow or run, if available.
-
-    Args:
-        log_data (list): The log entries to print.
-
-    Returns:
-        None
-    """
-    if log_data:
-        for log in log_data:
-            print(log)
-    else:
-        msg.print({"msg": "NO_LOG_DATA"})
-
-
 def _post_and_check(endpoint: str, param: dict) -> dict:
     """
     Sends a POST request to the backend and checks the result.
@@ -318,6 +304,18 @@ def main() -> None:
     Returns:
         None
     """
+    parser = argparse.ArgumentParser(description='Parma Light Frontend CLI')
+    parser.add_argument('-c', '--config', help='Toml configuration file path', default='parma_light.toml')
+    args = parser.parse_args()
+
+    # Load toml configuration
+    toml_config_file = Path(args.config)
+    toml_config = h.load_toml_config(toml_config_file)
+
+    # Get frontend properties
+    history_file = toml_config.get('history', {}).get('file', 'parma_light_cli_history')
+    ruc.init(history_file)
+    
     last_command = "view run"
     while True:
         user_input = ruc.read_user_command()
@@ -326,6 +324,7 @@ def main() -> None:
         if not run_a_command(user_input, False):
             break
         last_command = user_input
+    ruc.write_history_file()
 
 
 if __name__ == "__main__":

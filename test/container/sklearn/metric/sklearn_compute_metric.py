@@ -103,6 +103,7 @@ def main():
         print("Finished to compute the metrics")
     except Exception as e:
         print(f"An error occurred while computing the metrics: {e}")
+        sys.exit(12)
 
 if __name__ == "__main__":
     main()

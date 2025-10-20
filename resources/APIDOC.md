@@ -17,12 +17,13 @@ this documents describes
 
 ### General commands
 
-- `exit` OR `quit` OR `''` terminate the CLI
+- `exit` OR `quit` terminate the CLI
 - `store` store all tables in the file system
 - `redirect <path>` load commands from file `<path>`. Commands may spawn many lines and are terminated by a ';'
    as last character of a line
 - `login <user_name>` login with <user_name>
 - `logout`
+- `locale <en OR de>` set the locale for messages
 - `test_data` to load some test data into the pl-database. In directory 'test/test_cmds' the commands (and more) are found.
   Copy, edit and paste.
 

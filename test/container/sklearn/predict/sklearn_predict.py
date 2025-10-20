@@ -1,5 +1,6 @@
 import json
 import pickle
+import sys
 
 
 # the channels to the outer world
@@ -30,6 +31,7 @@ def main():
         print("Terminated to predict values")
     except Exception as e:
         print(f"An error occurred while predicting the values: {e}")
+        sys.exit(12)
 
 if __name__ == "__main__":
     main()

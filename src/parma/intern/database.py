@@ -5,10 +5,13 @@ import random
 import shutil
 import string
 import threading
+import logging
 
 from intern import msg
 import intern.helper as h
 import intern.dbc as dbc
+
+logger = logging.getLogger(__name__)
 
 entity_store = None
 data_dir = None
@@ -28,7 +31,8 @@ _run = None
 _min_unique_prefix_length = None # current length that is needed to identify a SHA-1 hash uniquely
 _last_min_unique_prefix_length = None # the last value of _min_unique_prefix_length, for user messages
 
-def init_globals(entity_store_config: str, data_dir_config: str, temp_dir_config: str) -> None:
+
+def init(entity_store_config: str, data_dir_config: str, temp_dir_config: str) -> None:
     """
     Initializes global variables and loads all database tables from JSON files.
 
@@ -52,7 +56,7 @@ def init_globals(entity_store_config: str, data_dir_config: str, temp_dir_config
     data_dir.mkdir(parents=True, exist_ok=True)
     temp_dir.mkdir(parents=True, exist_ok=True)
 
-    msg.print({"msg": "STORE", "entity_store": str(entity_store), "data_dir": str(data_dir), "temp_dir": str(temp_dir)})
+    msg.log(logger.info, {"msg": "STORE", "entity_store": str(entity_store), "data_dir": str(data_dir), "temp_dir": str(temp_dir)})
 
     _user = _load_json("user")
     _data = _load_json("data")
@@ -123,7 +127,7 @@ def store_tables() -> None:
         with open(file_path, "w") as f:
             json.dump(dictionary, f, indent=4, sort_keys=True)
         h.set_file_readonly(file_path)
-        msg.print({"msg": "STORED_TABLE", "name": name})
+        msg.log(logger.info, {"msg": "STORED_TABLE", "name": name})
 
 
 def get_min_unique_prefix_length() -> int:
@@ -153,7 +157,7 @@ def _opt_recompute_min_unique_prefix_length_and_return_it() -> None:
             len = len if len >= 6 else 6
             _min_unique_prefix_length = len if len % 2 == 0 else len + 1
             if _last_min_unique_prefix_length and _min_unique_prefix_length != _last_min_unique_prefix_length:
-                msg.print({"msg":"NUMBER_HEX_DIGITS", "number": _min_unique_prefix_length})
+                msg.log(logger.info, {"msg":"NUMBER_HEX_DIGITS", "number": _min_unique_prefix_length})
                 _last_min_unique_prefix_length = _min_unique_prefix_length
         return _min_unique_prefix_length
 
@@ -276,5 +280,5 @@ def remove_all_temp_directories() -> None:
         path = os.path.join(temp_dir, entry)
         if os.path.isdir(path):
             shutil.rmtree(path)
-    msg.print({"msg": "RM_TMPDIR"})
+    msg.log(logger.info, {"msg": "RM_TMPDIR"})
 

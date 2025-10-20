@@ -50,6 +50,7 @@ def main():
         print("Finished to generate the model. Model, test features and true labels stored")
     except Exception as e:
         print(f"An error occurred while generating the model: {e}")
+        sys.exit(12)
 
 
 if __name__ == "__main__":

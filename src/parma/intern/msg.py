@@ -14,6 +14,8 @@ print_exception: bool = True
 current_locale: str = "en"
 """The current locale for error messages. Default is 'en'."""
 
+logging_level = 'INFO'
+
 messages_en: Dict[str, str] = {
     "ACCESS_DENIED": "access denied. Please check your permissions.",
     "DIRECTORY_RESTRICTION": "currently directory \"{path}\" can neither be copied to the platform nor hashed",
@@ -62,11 +64,66 @@ messages_en: Dict[str, str] = {
     "PROD_SERVER": "Starting WSGI server on {host}:{port} based on \"{wsgi}\"",
     "RM_TMPDIR": "all temporary directories removed",
     "STORED_TABLE": "table {name} is stored",
-    "STORE": "entities: {entity_store}\ndata: {data_dir}\ntemp: {temp_dir}",
+    "STORE": "entities: {entity_store}, data: {data_dir}, temp: {temp_dir}",
     "SUCCESS": "command was successful"
 }
 
-messages_de: Dict[str, str] = {}
+messages_de: Dict[str, str] = {
+    "ACCESS_DENIED": "Zugriff verweigert. Bitte überprüfen Sie Ihre Berechtigungen.",
+    "DIRECTORY_RESTRICTION": "Das Verzeichnis \"{path}\" kann derzeit weder auf die Plattform kopiert noch gehasht werden",
+    "DOCKER_ERROR": "Es gab ein Problem mit Docker. Läuft der Docker-Daemon?",
+    "DUPLICATE_CHANNEL": "Kanal \"{name}\" wird mehrfach verwendet.",
+    "ERROR_COUNT": "Gesamtzahl der Fehler ist \"{number}\". Zähler wird zurückgesetzt",
+    "BACKEND_EXCEPTION": "Exception im Backend aufgetreten: \"{exception}\"",
+    "BACKEND_ERROR": "Programmierfehler im Backend erkannt",
+    "HASH_MISMATCH": "Datei \"{path}\" wurde nach dem Hinzufügen zur Plattform modifiziert",
+    "IMAGE_PROBLEM": "Das angegebene Image \"{image_name}\" wurde nicht gefunden oder ist fehlerhaft. Bitte überprüfen Sie es und versuchen Sie es erneut.",
+    "INVALID_CHANNEL": "Der Workflow ist ungültig. Bitte überprüfen Sie den Kanal \"{name}\".",
+    "INVALID_COMMAND": "Der eingegebene Befehl ist ungültig. Siehe 'resources/APIDOC.md'.",
+    "INVALID_CHANNEL_DEF": "\"storage\", \"hash\" und \"user_path\" sind für \"type\":\"directory\" erforderlich, aber für Dateien nicht erlaubt",
+    "INVALID_HASH": "Sie haben einen Hash \"{prefix}\" eingegeben, der nicht existiert.",
+    "INVALID_JSON_SYNTAX": "Ungültige JSON-Syntax. \"{json_msg}\". Fehler bei Zeichen {pos}, umgebende Zeichen sind >>>{context}<<<.",
+    "INVALID_LOCALE": "Die Sprache \"{locale}\" wird nicht unterstützt. Verwenden Sie z.B. 'de' für Deutsch.",
+    "INVALID_MESSAGE": "Ungültige Fehlerverarbeitung für Fehler \"{exception}\".",
+    "INVALID_PROPERTY": "Die TOML-Eigenschaft \"{property}\" ist ungültig. Der Wert wird auf \"{replacement}\" gesetzt",
+    "INVALID_SCHEMA": "Ungültiges JSON, Jsonschema-Fehler. \"{schema_error}\".",
+    "INVALID_WORKFLOW": "Der Workflow ist ungültig. Grund: \"{reason}\". Bitte überprüfen Sie die Workflow-Definition.",
+    "MUST_BE_SUPERUSER": "Sie müssen Superuser sein, um diese Aktion durchzuführen.",
+    "NODE_CHANNEL_MISSING_IN_WF_CHANNELS": "Kanal \"{channel_name}\" von {node_type} \"{referer_name}\" nicht in der Workflow-Kanal-Deklaration.",
+    "NODE_DEF_AND_USE_MISMATCH": "Kanäle von {node_type} \"{referer_name}\" stimmen nicht mit der Kanalnutzung im Workflow überein",
+    "NO_FILE_OR_NOT_FOUND": "\"{name}\" nicht gefunden oder ist keine Datei",
+    "NO_MESSAGE_KEY": "Kein Nachrichtenschlüssel angegeben.",
+    "NO_USER_LOGGED_IN": "Kein Benutzer angemeldet. Bitte melden Sie sich an, um fortzufahren.",
+    "NOT_FOUND": "Das {kind} wurde nicht gefunden. Bitte überprüfen Sie \"{name}\" und versuchen Sie es erneut.",
+    "NYI": "Diese Funktion ist leider noch nicht implementiert.",
+    "REFINE_MISMATCH": "Kanäle oder Bindungen einer Ersetzung in einer Refine-Deklaration stimmen nicht mit dem Original-Workflow überein",
+    "SYSTEM_ERROR": "Interner Fehler. Details: \"{details}\".",
+    "UNPROCESSED_EXCEPTION": "Eine unverarbeitete Ausnahme vom Typ \"{exception_type}\" ist aufgetreten.",
+    "USER_ALREADY_EXISTS": "Der Benutzer \"{name}\" existiert bereits. Bitte wählen Sie einen anderen Namen.",
+    "VALIDATION_ERROR": "Fehler bei der Validierung von \"{definition_of}\": \"{error}\".",
+    "WORKFLOW_CHANNEL_UNUSED": "Der Workflow-Kanal \"{channel_name}\" wird in keinem Node verwendet.",
+    
+    "CHANNEL_NOT_BOUND": "WARNUNG: {direction} Kanal {name} von {what} {hash} nicht gebunden",
+    "COMMAND_IGNORED": "Befehl ignoriert. Fehlermeldung ist: \"{message_text}\"",
+    "DOCKER_ACCESS_RETRY": "Erneuter Versuch auf Docker zuzugreifen (internes Problem von python_on_whales)",
+    "DOCKER_ACCESS_SUCCEEDED": "Zugriff auf Docker war schließlich erfolgreich",
+    "HISTORY_WRITTEN": "Verlaufsdatei wurde in \"{file}\" geschrieben",
+    "INPUT_COMMAND": "Ausführung: {command}",
+    "NAME_VERSION_HASH": "Name: {name}, Version: {version}, Hash: {hash}",
+    "NO_LOG_DATA": "Keine Protokolldaten gefunden",
+    "NUMBER_DATA_CREATED": "Der Lauf hat {number} neue Datenentität(en) erstellt",
+    "NUMBER_HEX_DIGITS": "Die Anzahl der Hex-Ziffern zur eindeutigen Identifizierung eines Hashs ist jetzt {number}",
+    "PROD_SERVER": "Starte WSGI-Server auf {host}:{port} basierend auf \"{wsgi}\"",
+    "RM_TMPDIR": "Alle temporären Verzeichnisse entfernt",
+    "STORED_TABLE": "Tabelle {name} wurde gespeichert",
+    "STORE": "Entitäten: {entity_store}, importierte Dateien: {data_dir}, temporäre Verzeichnisse: {temp_dir}",
+    "SUCCESS": "Befehl war erfolgreich"
+}
+
+
+def init(looging_level_from_properties):
+    global logging_level
+    logging_level = looging_level_from_properties
 
 
 def set_locale(locale: str) -> None:
@@ -80,7 +137,7 @@ def set_locale(locale: str) -> None:
         ParmaException: If the provided locale is not supported.
     """
     global current_locale
-    if locale not in ["en"]:
+    if locale not in ["en", "de"]:
         dbc.raise_error({"msg": "INVALID_LOCALE", "locale": locale})
     current_locale = locale
 
@@ -101,7 +158,19 @@ def print(msgkey_and_params: Dict[str, Any], prefix_with_error: bool = False) ->
         builtins.print(get_message_text(msgkey_and_params))
 
 
-def get_message_text(msgkey_and_params: Dict[str, Any]) -> str:
+def log(logger_level_function, msgkey_and_params: Dict[str, Any]) -> None:
+    """
+    Log a message text as defined by a message key. The message dictionary contains the message key and its parameters.
+    The message uses the locale 'en'.
+
+    Args:
+        logger_level_function: a logging function as logger.info or logger.error 
+        msgkey_and_params (dict): Message key and its parameters.
+    """
+    logger_level_function(get_message_text(msgkey_and_params, for_logging=True))
+
+
+def get_message_text(msgkey_and_params: Dict[str, Any], for_logging= False) -> str:
     """
     Create a message text from a dictionary. The dictionary contains the message key and its parameters.
     The message is localized based on the current locale.
@@ -114,14 +183,14 @@ def get_message_text(msgkey_and_params: Dict[str, Any]) -> str:
     """
     if not isinstance(msgkey_and_params, dict):
         return error_in_message_handling("message is no dict")
-    if msgkey_and_params.get("category", "SYSTEM_ERROR") == "USER_ERROR":
+    if for_logging or msgkey_and_params.get("category", "SYSTEM_ERROR") == "USER_ERROR":
         msg_context = ""
     else:
         msg_context = (
             " !!! This is a system error. Please contact the developer team !!!"
         )
     message_key = msgkey_and_params.get("msg", "--NO_MESSAGE_KEY--")
-    messages = messages_de if current_locale == "de" else messages_en
+    messages = messages_de if current_locale == "de" and not for_logging else messages_en
     message = messages.get(message_key, "--NO_MESSAGE--")
     if message == "--NO_MESSAGE--":
         return get_message_text({"msg": "SYSTEM_ERROR", "details": "message key not found"})
