@@ -51,4 +51,8 @@ Commands:
     use uv to update the toml-file and uv.lock, then run
     - pip-audit to create the bill-of-materials checking vulnerabilities in file audit.json
     - pip-licences to create the bill-of-materials checking licenses of used packages
-      in file licenses.md and licenses.json 
+      in file licenses.md and licenses.json
+
+  --publish-new-version <version-for-parma-light-starting-with-v>
+    create a new version of the parma_light docker image to docker hub. Pin this version in the git repo by a tag with same name
+    

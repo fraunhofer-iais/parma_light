@@ -199,7 +199,7 @@ while [[ $# -gt 0 ]]; do
     
     --assess)         run_assess ;;
 
-    --push-tag)       checkBranchClean
+    --publish-new-version) checkBranchClean
                       B=$(getBranchName)
                       case "$B" in
                         master) : ;;
@@ -208,13 +208,13 @@ while [[ $# -gt 0 ]]; do
                       version="$1"
                       case "$version" in
                         v*) : ;;
-                        *)  echo "a tag name must be given and start with 'v' - exit 12"
+                        *)  echo "a new version name must be given and start with 'v' - exit 12"
                             exit 12 ;;
                       esac
                       shift
                       git tag "$version"
                       git push origin "$version"
-                      echo "created and pushed tag '$version'" ;; 
+                      echo "created and pushed tag '$version'. A github action will create the image and push to docker hub" ;; 
 
     *)                echo "invalid command: $cmd - exit 12"
                       exit 12 ;;
