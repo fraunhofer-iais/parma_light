@@ -49,7 +49,7 @@ jobs:
       - name: Build Docker image
         run: |
           chmod +x ./admin.sh
-          ./admin.sh --dind-build
+          ./admin.sh --dood-build
           
       - name: Push Docker image
         run: |

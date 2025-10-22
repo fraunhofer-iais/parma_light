@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 AS build
+FROM ubuntu:22.04
 
 RUN apt-get update && \
     apt-get -qy full-upgrade && \
@@ -12,12 +12,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 WORKDIR /app
 
 COPY admin-help.txt admin.sh pyproject.toml README.md ./
-COPY docker/parma_light.toml ./
-COPY example ./example
-COPY initdata ./initdata
-COPY resources ./resources
 COPY src ./src
-COPY test ./test
 
 EXPOSE 8080
 
@@ -25,5 +20,7 @@ RUN chmod +x admin.sh && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     uv sync
 
-ENTRYPOINT ["/bin/bash","./admin.sh","-q","--dind-script"]
+RUN mkdir /temp_dir /datastore_parma
+
+ENTRYPOINT ["/bin/bash","./admin.sh","-q","--dood-script"]
 CMD []

@@ -1,0 +1,347 @@
+2025-11-03 14:15:07 - intern.database      - INFO     - entities: C:\git\parma_light\datastore_parma\entity_store, data: C:\git\parma_light\datastore_parma\data_dir, temp: C:\git\parma_light\datastore_parma\temp_dir
+2025-11-03 14:15:08 - __main__             - INFO     - Starting WSGI server on 0.0.0.0:8080 based on "waitress"
+2025-11-03 14:15:08 - waitress             - INFO     - Serving on http://0.0.0.0:8080
+2025-11-03 14:19:13 - intern.database      - INFO     - table user is stored
+2025-11-03 14:19:13 - intern.database      - INFO     - table data is stored
+2025-11-03 14:19:13 - intern.database      - INFO     - table node is stored
+2025-11-03 14:19:13 - intern.database      - INFO     - table workflow is stored
+2025-11-03 14:19:13 - intern.database      - INFO     - table run is stored
+2025-11-03 14:19:13 - intern.database      - INFO     - all temporary directories removed
+2025-11-03 14:19:16 - intern.database      - INFO     - entities: C:\git\parma_light\datastore_parma\entity_store, data: C:\git\parma_light\datastore_parma\data_dir, temp: C:\git\parma_light\datastore_parma\temp_dir
+2025-11-03 14:19:16 - __main__             - INFO     - Starting WSGI server on 0.0.0.0:8080 based on "waitress"
+2025-11-03 14:19:16 - waitress             - INFO     - Serving on http://0.0.0.0:8080
+2025-11-03 14:20:14 - component.run        - INFO     - *** workflow run_accuracy_seed_42 started ***
+2025-11-03 14:20:14 - component.run        - INFO     - node: model
+2025-11-03 14:20:14 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/zxnwk5uk/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/kmcfi5we/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/ufpg3vfb/true_labels_file:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:20:16 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:20:16 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:16 - component.run        - INFO     - node: predict
+2025-11-03 14:20:16 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/rb7scvdb/pred_labels_file:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:20:17 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:20:17 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:17 - component.run        - INFO     - node: metric
+2025-11-03 14:20:17 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/5pvluaiz/accuracy_result:/data/result.json -e CMD=accuracy 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:20:19 - component.run        - INFO     - stdout: Started to compute the metrics accuracy
+Finished to compute the metrics
+2025-11-03 14:20:19 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:19 - component.run        - INFO     - the run created 5 new data entity/ies
+2025-11-03 14:20:19 - component.run        - INFO     - *** workflow run_accuracy_seed_42 finished successfully ***
+2025-11-03 14:20:23 - component.run        - INFO     - *** workflow run_accuracy_seed_1964 started ***
+2025-11-03 14:20:23 - component.run        - INFO     - node: model
+2025-11-03 14:20:23 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/v4aezvxw/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/6y81xw5f/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/ddehuf1u/true_labels_file:/data/true_labels.json -e SEED=1964 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:20:24 - component.run        - INFO     - stdout: Started to generate the model with random seed 1964
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:20:24 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:24 - component.run        - INFO     - node: predict
+2025-11-03 14:20:24 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\46ecf0ec05191fc349e6b6e1af8e74aa644a71c4:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\1312ed8b7046fa5fa76e89a960155c6998384930:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/ayseq6ew/pred_labels_file:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:20:25 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:20:25 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:25 - component.run        - INFO     - node: metric
+2025-11-03 14:20:25 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\ff70e3033b58ff5768744563cdde6748473c1498:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b06d6f1385ea7b44dd3ff08fe8ef655f5ea92435:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/85geixz6/accuracy_result:/data/result.json -e CMD=accuracy 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:20:27 - component.run        - INFO     - stdout: Started to compute the metrics accuracy
+Finished to compute the metrics
+2025-11-03 14:20:27 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:27 - component.run        - INFO     - the run created 5 new data entity/ies
+2025-11-03 14:20:27 - component.run        - INFO     - *** workflow run_accuracy_seed_1964 finished successfully ***
+2025-11-03 14:20:46 - component.run        - INFO     - *** workflow run_predict_standalone started ***
+2025-11-03 14:20:46 - component.run        - INFO     - node: model
+2025-11-03 14:20:46 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/6y7249mz/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/7mvpp57j/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/cxu7hv3z/true_labels:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:20:47 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:20:47 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:47 - component.run        - INFO     - node: predict
+2025-11-03 14:20:47 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/clcipndm/pred_labels:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:20:49 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:20:49 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:49 - component.run        - INFO     - the run created 4 new data entity/ies
+2025-11-03 14:20:49 - component.run        - INFO     - *** workflow run_predict_standalone finished successfully ***
+2025-11-03 14:20:53 - component.run        - INFO     - *** workflow run_metrics_1 started ***
+2025-11-03 14:20:53 - component.run        - INFO     - node: predict
+2025-11-03 14:20:53 - component.run        - INFO     - *** workflow predict started ***
+2025-11-03 14:20:53 - component.run        - INFO     - node: model
+2025-11-03 14:20:53 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/86h697gz/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/xv0fjjtb/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/bvymk9bu/true_labels:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:20:54 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:20:54 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:54 - component.run        - INFO     - node: predict
+2025-11-03 14:20:54 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/q58plytk/pred_labels:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:20:55 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:20:56 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:56 - component.run        - INFO     - the run created 4 new data entity/ies
+2025-11-03 14:20:56 - component.run        - INFO     - *** workflow predict finished successfully ***
+2025-11-03 14:20:56 - component.run        - INFO     - sub workflow "predict" finished. Result: True, Hash: b7a14f
+2025-11-03 14:20:56 - component.run        - INFO     - node: metric
+2025-11-03 14:20:56 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/g1h43kzk/metric_result:/data/result.json -e CMD=accuracy 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:20:57 - component.run        - INFO     - stdout: Started to compute the metrics accuracy
+Finished to compute the metrics
+2025-11-03 14:20:57 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:20:57 - component.run        - INFO     - the run created 3 new data entity/ies
+2025-11-03 14:20:57 - component.run        - INFO     - *** workflow run_metrics_1 finished successfully ***
+2025-11-03 14:21:01 - component.run        - INFO     - *** workflow run_metrics_2 started ***
+2025-11-03 14:21:01 - component.run        - INFO     - node: predict
+2025-11-03 14:21:01 - component.run        - INFO     - *** workflow predict started ***
+2025-11-03 14:21:01 - component.run        - INFO     - node: model
+2025-11-03 14:21:01 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/sarawdbv/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/z74q693m/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/q46h25z2/true_labels:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:21:02 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:21:02 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:02 - component.run        - INFO     - node: predict
+2025-11-03 14:21:02 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/a7zx6d0e/pred_labels:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:21:04 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:21:04 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:04 - component.run        - INFO     - the run created 4 new data entity/ies
+2025-11-03 14:21:04 - component.run        - INFO     - *** workflow predict finished successfully ***
+2025-11-03 14:21:04 - component.run        - INFO     - sub workflow "predict" finished. Result: True, Hash: 0f05e9
+2025-11-03 14:21:04 - component.run        - INFO     - node: metric
+2025-11-03 14:21:04 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/lj3geh71/metric_result:/data/result.json -e CMD=accuracy,precision 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:21:05 - component.run        - INFO     - stdout: Started to compute the metrics accuracy,precision
+Finished to compute the metrics
+2025-11-03 14:21:05 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:05 - component.run        - INFO     - the run created 3 new data entity/ies
+2025-11-03 14:21:05 - component.run        - INFO     - *** workflow run_metrics_2 finished successfully ***
+2025-11-03 14:21:09 - component.run        - INFO     - *** workflow run_metrics_4 started ***
+2025-11-03 14:21:09 - component.run        - INFO     - node: predict
+2025-11-03 14:21:09 - component.run        - INFO     - *** workflow predict started ***
+2025-11-03 14:21:09 - component.run        - INFO     - node: model
+2025-11-03 14:21:09 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/20moj04t/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/1eg652j1/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/s3gedet9/true_labels:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:21:11 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:21:11 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:11 - component.run        - INFO     - node: predict
+2025-11-03 14:21:11 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/be091y1e/pred_labels:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:21:12 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:21:12 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:12 - component.run        - INFO     - the run created 4 new data entity/ies
+2025-11-03 14:21:12 - component.run        - INFO     - *** workflow predict finished successfully ***
+2025-11-03 14:21:12 - component.run        - INFO     - sub workflow "predict" finished. Result: True, Hash: 970833
+2025-11-03 14:21:12 - component.run        - INFO     - node: metric
+2025-11-03 14:21:12 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/5n2ohh1y/metric_result:/data/result.json -e CMD=accuracy,precision,recall,f1 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:21:14 - component.run        - INFO     - stdout: Started to compute the metrics accuracy,precision,recall,f1
+Finished to compute the metrics
+2025-11-03 14:21:14 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:14 - component.run        - INFO     - the run created 3 new data entity/ies
+2025-11-03 14:21:14 - component.run        - INFO     - *** workflow run_metrics_4 finished successfully ***
+2025-11-03 14:21:18 - component.run        - INFO     - *** workflow run_replace_wf_by_node started ***
+2025-11-03 14:21:18 - component.run        - INFO     - node: predict
+2025-11-03 14:21:18 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/50vl7dzn/pred_labels_file:/data/pred_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/x8nngdzd/true_labels_file:/data/true_labels.json 1cb14f6909e07d588aa4a324c5302c8fac4cb0f20b9ebf8cd7bd39a8efc5decf
+2025-11-03 14:21:19 - component.run        - INFO     - stdout: Started to generate the model
+Started to predict values
+Finished to generate the model and predict values
+2025-11-03 14:21:19 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:19 - component.run        - INFO     - node: metric
+2025-11-03 14:21:19 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/acpokna1/metric_result:/data/result.json -e CMD=accuracy 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:21:20 - component.run        - INFO     - stdout: Started to compute the metrics accuracy
+Finished to compute the metrics
+2025-11-03 14:21:20 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:20 - component.run        - INFO     - the run created 3 new data entity/ies
+2025-11-03 14:21:20 - component.run        - INFO     - *** workflow run_replace_wf_by_node finished successfully ***
+2025-11-03 14:21:25 - component.run        - INFO     - *** workflow run_replace_node_by_wf started ***
+2025-11-03 14:21:25 - component.run        - INFO     - node: predict
+2025-11-03 14:21:25 - component.run        - INFO     - *** workflow predict started ***
+2025-11-03 14:21:25 - component.run        - INFO     - node: model
+2025-11-03 14:21:25 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/ggjq3zv4/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/93dctx6f/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/267ovqu8/true_labels:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:21:26 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:21:26 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:26 - component.run        - INFO     - node: predict
+2025-11-03 14:21:26 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/aan47bbx/pred_labels:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:21:27 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:21:27 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:27 - component.run        - INFO     - the run created 4 new data entity/ies
+2025-11-03 14:21:27 - component.run        - INFO     - *** workflow predict finished successfully ***
+2025-11-03 14:21:27 - component.run        - INFO     - sub workflow "predict" finished. Result: True, Hash: 60a63a
+2025-11-03 14:21:27 - component.run        - INFO     - node: metric
+2025-11-03 14:21:27 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/yxpp5ak0/metric_result:/data/result.json -e CMD=accuracy 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:21:29 - component.run        - INFO     - stdout: Started to compute the metrics accuracy
+Finished to compute the metrics
+2025-11-03 14:21:29 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:21:29 - component.run        - INFO     - the run created 3 new data entity/ies
+2025-11-03 14:21:29 - component.run        - INFO     - *** workflow run_replace_node_by_wf finished successfully ***
+2025-11-03 14:21:33 - intern.database      - INFO     - table user is stored
+2025-11-03 14:21:33 - intern.database      - INFO     - table data is stored
+2025-11-03 14:21:33 - intern.database      - INFO     - table node is stored
+2025-11-03 14:21:33 - intern.database      - INFO     - table workflow is stored
+2025-11-03 14:21:33 - intern.database      - INFO     - table run is stored
+2025-11-03 14:21:42 - intern.database      - INFO     - table user is stored
+2025-11-03 14:21:42 - intern.database      - INFO     - table data is stored
+2025-11-03 14:21:42 - intern.database      - INFO     - table node is stored
+2025-11-03 14:21:42 - intern.database      - INFO     - table workflow is stored
+2025-11-03 14:21:42 - intern.database      - INFO     - table run is stored
+2025-11-03 14:21:42 - intern.database      - INFO     - all temporary directories removed
+2025-11-03 14:22:01 - intern.database      - INFO     - entities: C:\git\parma_light\datastore_parma\entity_store, data: C:\git\parma_light\datastore_parma\data_dir, temp: C:\git\parma_light\datastore_parma\temp_dir
+2025-11-03 14:22:01 - __main__             - INFO     - Starting WSGI server on 0.0.0.0:8080 based on "waitress"
+2025-11-03 14:22:01 - waitress             - INFO     - Serving on http://0.0.0.0:8080
+2025-11-03 14:23:03 - component.run        - INFO     - *** workflow run_accuracy_seed_42 started ***
+2025-11-03 14:23:03 - component.run        - INFO     - node: model
+2025-11-03 14:23:03 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/q1fs69vj/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/tcffhyks/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/3v6f13j4/true_labels_file:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:23:04 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:23:04 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:04 - component.run        - INFO     - node: predict
+2025-11-03 14:23:04 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/y5sda60o/pred_labels_file:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:23:05 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:23:05 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:05 - component.run        - INFO     - node: metric
+2025-11-03 14:23:05 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/26zpqs9t/accuracy_result:/data/result.json -e CMD=accuracy 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:23:07 - component.run        - INFO     - stdout: Started to compute the metrics accuracy
+Finished to compute the metrics
+2025-11-03 14:23:07 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:07 - component.run        - INFO     - the run created 5 new data entity/ies
+2025-11-03 14:23:07 - component.run        - INFO     - *** workflow run_accuracy_seed_42 finished successfully ***
+2025-11-03 14:23:11 - component.run        - INFO     - *** workflow run_accuracy_seed_1964 started ***
+2025-11-03 14:23:11 - component.run        - INFO     - node: model
+2025-11-03 14:23:11 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/b6w0ssrd/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/le3a6ojw/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/jkr9v5bn/true_labels_file:/data/true_labels.json -e SEED=1964 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:23:12 - component.run        - INFO     - stdout: Started to generate the model with random seed 1964
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:23:12 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:12 - component.run        - INFO     - node: predict
+2025-11-03 14:23:12 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\46ecf0ec05191fc349e6b6e1af8e74aa644a71c4:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\1312ed8b7046fa5fa76e89a960155c6998384930:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/wdz9133z/pred_labels_file:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:23:13 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:23:13 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:13 - component.run        - INFO     - node: metric
+2025-11-03 14:23:13 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\ff70e3033b58ff5768744563cdde6748473c1498:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b06d6f1385ea7b44dd3ff08fe8ef655f5ea92435:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/e887j5oc/accuracy_result:/data/result.json -e CMD=accuracy 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:23:14 - component.run        - INFO     - stdout: Started to compute the metrics accuracy
+Finished to compute the metrics
+2025-11-03 14:23:14 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:14 - component.run        - INFO     - the run created 5 new data entity/ies
+2025-11-03 14:23:14 - component.run        - INFO     - *** workflow run_accuracy_seed_1964 finished successfully ***
+2025-11-03 14:23:33 - component.run        - INFO     - *** workflow run_predict_standalone started ***
+2025-11-03 14:23:33 - component.run        - INFO     - node: model
+2025-11-03 14:23:33 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/recaz1v0/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/gens2ua7/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/5b9lzw8r/true_labels:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:23:34 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:23:34 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:34 - component.run        - INFO     - node: predict
+2025-11-03 14:23:34 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/pizg1nsn/pred_labels:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:23:36 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:23:36 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:36 - component.run        - INFO     - the run created 4 new data entity/ies
+2025-11-03 14:23:36 - component.run        - INFO     - *** workflow run_predict_standalone finished successfully ***
+2025-11-03 14:23:40 - component.run        - INFO     - *** workflow run_metrics_1 started ***
+2025-11-03 14:23:40 - component.run        - INFO     - node: predict
+2025-11-03 14:23:40 - component.run        - INFO     - *** workflow predict started ***
+2025-11-03 14:23:40 - component.run        - INFO     - node: model
+2025-11-03 14:23:40 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/dh6df3ch/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/e8o3iqr3/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/27kp0fhu/true_labels:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:23:41 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:23:41 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:41 - component.run        - INFO     - node: predict
+2025-11-03 14:23:41 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/bkfjnf1k/pred_labels:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:23:42 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:23:42 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:42 - component.run        - INFO     - the run created 4 new data entity/ies
+2025-11-03 14:23:42 - component.run        - INFO     - *** workflow predict finished successfully ***
+2025-11-03 14:23:42 - component.run        - INFO     - sub workflow "predict" finished. Result: True, Hash: 07c0d5
+2025-11-03 14:23:42 - component.run        - INFO     - node: metric
+2025-11-03 14:23:42 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/oborrmus/metric_result:/data/result.json -e CMD=accuracy 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:23:43 - component.run        - INFO     - stdout: Started to compute the metrics accuracy
+Finished to compute the metrics
+2025-11-03 14:23:43 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:43 - component.run        - INFO     - the run created 3 new data entity/ies
+2025-11-03 14:23:43 - component.run        - INFO     - *** workflow run_metrics_1 finished successfully ***
+2025-11-03 14:23:47 - component.run        - INFO     - *** workflow run_metrics_2 started ***
+2025-11-03 14:23:47 - component.run        - INFO     - node: predict
+2025-11-03 14:23:47 - component.run        - INFO     - *** workflow predict started ***
+2025-11-03 14:23:47 - component.run        - INFO     - node: model
+2025-11-03 14:23:47 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/gyl2cbb0/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/m7kvo2j5/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/9km78w1u/true_labels:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:23:49 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:23:49 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:49 - component.run        - INFO     - node: predict
+2025-11-03 14:23:49 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/ee4mqbra/pred_labels:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:23:50 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:23:50 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:50 - component.run        - INFO     - the run created 4 new data entity/ies
+2025-11-03 14:23:50 - component.run        - INFO     - *** workflow predict finished successfully ***
+2025-11-03 14:23:50 - component.run        - INFO     - sub workflow "predict" finished. Result: True, Hash: 65b0d0
+2025-11-03 14:23:50 - component.run        - INFO     - node: metric
+2025-11-03 14:23:50 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/s1gehju8/metric_result:/data/result.json -e CMD=accuracy,precision 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:23:52 - component.run        - INFO     - stdout: Started to compute the metrics accuracy,precision
+Finished to compute the metrics
+2025-11-03 14:23:52 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:52 - component.run        - INFO     - the run created 3 new data entity/ies
+2025-11-03 14:23:52 - component.run        - INFO     - *** workflow run_metrics_2 finished successfully ***
+2025-11-03 14:23:56 - component.run        - INFO     - *** workflow run_metrics_4 started ***
+2025-11-03 14:23:56 - component.run        - INFO     - node: predict
+2025-11-03 14:23:56 - component.run        - INFO     - *** workflow predict started ***
+2025-11-03 14:23:56 - component.run        - INFO     - node: model
+2025-11-03 14:23:56 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/naicjt43/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/8t9hcgwf/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/j0cppdse/true_labels:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:23:57 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:23:57 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:57 - component.run        - INFO     - node: predict
+2025-11-03 14:23:57 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/fbo8zc50/pred_labels:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:23:58 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:23:58 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:23:58 - component.run        - INFO     - the run created 4 new data entity/ies
+2025-11-03 14:23:58 - component.run        - INFO     - *** workflow predict finished successfully ***
+2025-11-03 14:23:58 - component.run        - INFO     - sub workflow "predict" finished. Result: True, Hash: ed092f
+2025-11-03 14:23:58 - component.run        - INFO     - node: metric
+2025-11-03 14:23:58 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/qgoew4pq/metric_result:/data/result.json -e CMD=accuracy,precision,recall,f1 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:24:00 - component.run        - INFO     - stdout: Started to compute the metrics accuracy,precision,recall,f1
+Finished to compute the metrics
+2025-11-03 14:24:00 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:24:00 - component.run        - INFO     - the run created 3 new data entity/ies
+2025-11-03 14:24:00 - component.run        - INFO     - *** workflow run_metrics_4 finished successfully ***
+2025-11-03 14:24:04 - component.run        - INFO     - *** workflow run_replace_wf_by_node started ***
+2025-11-03 14:24:04 - component.run        - INFO     - node: predict
+2025-11-03 14:24:04 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/2dq1o5pz/pred_labels_file:/data/pred_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/futt8bsb/true_labels_file:/data/true_labels.json 1cb14f6909e07d588aa4a324c5302c8fac4cb0f20b9ebf8cd7bd39a8efc5decf
+2025-11-03 14:24:05 - component.run        - INFO     - stdout: Started to generate the model
+Started to predict values
+Finished to generate the model and predict values
+2025-11-03 14:24:05 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:24:05 - component.run        - INFO     - node: metric
+2025-11-03 14:24:05 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/4kjf7q6l/metric_result:/data/result.json -e CMD=accuracy 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:24:06 - component.run        - INFO     - stdout: Started to compute the metrics accuracy
+Finished to compute the metrics
+2025-11-03 14:24:06 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:24:06 - component.run        - INFO     - the run created 3 new data entity/ies
+2025-11-03 14:24:06 - component.run        - INFO     - *** workflow run_replace_wf_by_node finished successfully ***
+2025-11-03 14:24:10 - component.run        - INFO     - *** workflow run_replace_node_by_wf started ***
+2025-11-03 14:24:10 - component.run        - INFO     - node: predict
+2025-11-03 14:24:10 - component.run        - INFO     - *** workflow predict started ***
+2025-11-03 14:24:10 - component.run        - INFO     - node: model
+2025-11-03 14:24:10 - component.run        - INFO     - Running command: docker run --rm -v C:/git/parma_light/datastore_parma/temp_dir/c3q45zlp/model_file:/data/model.pkl -v C:/git/parma_light/datastore_parma/temp_dir/jbfnzb9x/X_test_file:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/m6tmwv3m/true_labels:/data/true_labels.json -e SEED=42 006a87cba8bd9104cb46435d1e99df9a13f65697a0efdd03537daf1ef8abf4e4
+2025-11-03 14:24:12 - component.run        - INFO     - stdout: Started to generate the model with random seed 42
+Finished to generate the model. Model, test features and true labels stored
+2025-11-03 14:24:12 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:24:12 - component.run        - INFO     - node: predict
+2025-11-03 14:24:12 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\9a6684437b360a9e093d1967974176ab424d1d79:/data/model.pkl -v C:\git\parma_light\datastore_parma\data_dir\31c512441acfed14201dfeb2797d42668fbc4f49:/data/X_test.json -v C:/git/parma_light/datastore_parma/temp_dir/bdej7oyt/pred_labels:/data/pred_labels.json f366c592df3104b09c2d94abff437df49fc76d77d5dfa9330b0d2566c283e012
+2025-11-03 14:24:13 - component.run        - INFO     - stdout: Started to predict values
+Terminated to predict values
+2025-11-03 14:24:13 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:24:13 - component.run        - INFO     - the run created 4 new data entity/ies
+2025-11-03 14:24:13 - component.run        - INFO     - *** workflow predict finished successfully ***
+2025-11-03 14:24:13 - component.run        - INFO     - sub workflow "predict" finished. Result: True, Hash: 6d43e1
+2025-11-03 14:24:13 - component.run        - INFO     - node: metric
+2025-11-03 14:24:13 - component.run        - INFO     - Running command: docker run --rm -v C:\git\parma_light\datastore_parma\data_dir\442943099ca96fe775d5d0f040dd083bd50e3899:/data/pred_labels.json -v C:\git\parma_light\datastore_parma\data_dir\b8eac92248d536339e4fca5798224b019d83c273:/data/true_labels.json -v C:/git/parma_light/datastore_parma/temp_dir/y9oofcaz/metric_result:/data/result.json -e CMD=accuracy 3d08ac0b4cdb06b429ee8d94052ea4c160a1d5cf530f16a116d5bc0093633b71
+2025-11-03 14:24:15 - component.run        - INFO     - stdout: Started to compute the metrics accuracy
+Finished to compute the metrics
+2025-11-03 14:24:15 - component.run        - INFO     - run finished. Success: True
+2025-11-03 14:24:15 - component.run        - INFO     - the run created 3 new data entity/ies
+2025-11-03 14:24:15 - component.run        - INFO     - *** workflow run_replace_node_by_wf finished successfully ***
+2025-11-03 14:24:19 - intern.database      - INFO     - table user is stored
+2025-11-03 14:24:19 - intern.database      - INFO     - table data is stored
+2025-11-03 14:24:19 - intern.database      - INFO     - table node is stored
+2025-11-03 14:24:19 - intern.database      - INFO     - table workflow is stored
+2025-11-03 14:24:19 - intern.database      - INFO     - table run is stored
+2025-11-03 15:38:58 - intern.database      - INFO     - table user is stored
+2025-11-03 15:38:58 - intern.database      - INFO     - table data is stored
+2025-11-03 15:38:58 - intern.database      - INFO     - table node is stored
+2025-11-03 15:38:58 - intern.database      - INFO     - table workflow is stored
+2025-11-03 15:38:58 - intern.database      - INFO     - table run is stored
+2025-11-03 15:38:58 - intern.database      - INFO     - all temporary directories removed

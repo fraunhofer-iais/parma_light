@@ -1,0 +1,111 @@
+data {
+    "name": "gen_string",
+    "type": "file",
+    "storage": "platform",
+    "hash": "true",
+    "format": "any", 
+    "user_path": "bash/gen_string.sh"
+};
+data {
+    "name": "repeat_string",
+    "type": "file",
+    "storage": "platform",
+    "hash": "true",
+    "format": "any", 
+    "user_path": "bash/repeat_string.sh"
+};
+
+node {
+    "name": "nd_gen_string_bash",
+    "bash": { "name": "gen_string", "version": "latest"},
+    "input": {
+        "string": { "type": "environment_var", "format": "str", "environment_var_in_container": "STRING"}
+    },
+    "output": {
+        "out": { "type": "file", "format": "any", "environment_var_in_container": "FILE"}
+    }
+};
+node {
+    "name": "nd_repeat_string_bash",
+    "bash": { "name": "repeat_string", "version": "latest"},
+    "input":  {
+        "count": { "type": "environment_var", "format": "str", "environment_var_in_container": "COUNT"},
+        "in": { "type": "file", "format": "any", "environment_var_in_container": "INPUT_FILE" }
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "environment_var_in_container": "OUTPUT_FILE"}
+    }
+};
+
+workflow {
+    "name": "wf_process_string_bash",
+    "input": {
+    },
+    "output": {
+        "repeated_inte":  { "type": "file", "format": "any" },
+        "repeated_lina":  { "type": "file", "format": "any" }
+    },
+    "bind": {
+        "string_inte":    { "type": "environment_var", "format": "str", "environment_var_value": "inte" },
+        "string_lina":    { "type": "environment_var", "format": "str", "environment_var_value": "lina" },
+        "count_5":        { "type": "environment_var", "format": "str", "environment_var_value": "5" },
+        "count_7":        { "type": "environment_var", "format": "str", "environment_var_value": "7" }
+    },
+    "connect": {
+        "generated_inte": { "type": "file", "format": "any" },
+        "generated_lina": { "type": "file", "format": "any" }
+    },
+    "nodes": {
+        "gen_inte": {
+            "node": {
+                "name": "nd_gen_string_bash", "version": "latest"
+            },
+            "input": {
+                "string": "string_inte"
+            },
+            "output": {
+                "out": "generated_inte"
+            }
+        },
+        "gen_lina": {
+            "node": {
+                "name": "nd_gen_string_bash", "version": "latest"
+            },
+            "input": {
+                "string": "string_lina"
+            },
+            "output": {
+                "out": "generated_lina"
+            }
+        },
+        "repeat_inte": {
+            "node": {
+                "name": "nd_repeat_string_bash", "version": "latest"
+            },
+            "input": {
+                "count": "count_5",
+                "in": "generated_inte"
+            },
+            "output": {
+                "out": "repeated_inte"
+            }
+        },
+        "repeat_lina": {
+            "node": {
+                "name": "nd_repeat_string_bash", "version": "latest"
+            },
+            "input": {
+                "count": "count_7",
+                "in": "generated_lina"
+            },
+            "output": {
+                "out": "repeated_lina"
+            }
+        }
+    }
+};
+
+run {
+    "name": "run_process_string_bash",
+    "workflow": { "name": "wf_process_string_bash", "version": "latest" }
+};

@@ -1,6 +1,7 @@
 import hashlib
 import os
 import random
+import re
 import shutil
 import intern.dbc as dbc
 import intern.helper as h
@@ -81,9 +82,11 @@ def get_data_info_from_workflow_or_run(workflow_or_run: dict) -> list[list]:
     return data_array
 
 
-def get_path_by_hash(hash: str) -> str:
+def get_path_by_hash(hash: str, for_mounting= False) -> str:
     """
-    Retrieves the file path of a data entry by the hash of the data entry.
+    Retrieves the file path of a data entry by the hash of the data entry. There is a special case if Parma_light
+    is running in a container in DOOD mode. The path is resolved by the demon running on the host, thus for
+    mounting the path ON THE HOST that corresponds to the mounted directory is returned
 
     Args:
         hash (str): The hash of the data entry.
@@ -96,14 +99,20 @@ def get_path_by_hash(hash: str) -> str:
     """
     data = get_data_by_hash(hash)
     path = data["_path"]
+
     if data["storage"] == "extern":
-        pass
+        if h.RUNNING_IN_CONTAINER:
+            dbc.raise_error( {"msg": "SYSTEM_ERROR", "details": "extern storage not supported with docker"}, user_error=True )
+        if os.path.exists(path):
+            return path
     else:
-        path = os.path.join(db.data_dir, path)
-    if os.path.exists(path):
-        return path
-    else:
-        dbc.raise_error({"msg": "NOT_FOUND", "kind": "data definition", "name": hash})
+        data_path = os.path.join(db.data_dir,path)
+        if os.path.exists(data_path):
+            if h.RUNNING_IN_CONTAINER and for_mounting:
+                return f"{db.data_dir_for_mount}/{path}" # TODO: the slash should be replaced
+            else:
+                return data_path
+    dbc.raise_error({"msg": "NOT_FOUND", "kind": "data definition", "name": hash})
 
 
 def add_data(
@@ -127,7 +136,10 @@ def add_data(
     h.validate_user_input(data, "data_def")
 
     user_path = data["user_path"]
-    user_path = os.path.abspath(user_path)
+    if _is_absolute_path(user_path):
+        user_path = os.path.abspath(user_path)
+    else:
+        user_path = os.path.join(db.base_dir, user_path)
 
     store_in_platform = data["storage"] == "platform"
     use_content_hash = data["hash"] == "true"
@@ -204,6 +216,41 @@ def _does_file_content_hash_exist(hash: str) -> bool:
     """
     path_to_content = os.path.join(db.data_dir, hash)
     return os.path.exists(path_to_content)
+
+
+def _is_absolute_path(path: str) -> bool:
+    """
+    Checks if a path is absolute on both Windows and Linux systems.
+
+    Args:
+        path (str): The path to check
+
+    Returns:
+        bool: True if the path is absolute, False if relative
+    """
+    # Windows drive letter pattern (C:, D:, etc.)
+    if re.match(r'^[a-zA-Z]:', path):
+        if db.host_os == 'windows':
+            if h.RUNNING_IN_CONTAINER:
+                dbc.raise_error( {"msg": "SYSTEM_ERROR", "details": "no absolute pathes when running in a container"}, user_error=True )
+            else:
+                return True
+        else:
+            dbc.raise_error( {"msg": "SYSTEM_ERROR", "details": "windows path, but host is not windows"}, user_error=True )
+    # Unix-style absolute path
+    elif path.startswith('/'):
+        if h.RUNNING_IN_CONTAINER:
+            if path.startswith('/temp_dir/'):
+                return True
+            else:
+                dbc.raise_error( {"msg": "SYSTEM_ERROR", "details": "no absolute pathes when running in a container"}, user_error=True )
+        else:
+            if db.host_os == 'windows':
+                dbc.raise_error( {"msg": "SYSTEM_ERROR", "details": "linux path, but host is not linux"}, user_error=True )
+            else:
+                return True
+    else:        
+        return False
 
 
 def _append_data(data_array: list, msg: str, data_hash: str) -> None:

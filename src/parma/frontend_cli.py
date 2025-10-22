@@ -305,7 +305,7 @@ def main() -> None:
         None
     """
     parser = argparse.ArgumentParser(description='Parma Light Frontend CLI')
-    parser.add_argument('-c', '--config', help='Toml configuration file path', default='parma_light.toml')
+    parser.add_argument('-c', '--config', help='Toml configuration file path')
     args = parser.parse_args()
 
     # Load toml configuration

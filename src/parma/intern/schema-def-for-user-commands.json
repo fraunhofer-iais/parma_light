@@ -151,6 +151,12 @@
         "image": {
           "$ref": "#/$defs/name_version__or__hash"
         },
+        "bash": {
+          "$ref": "#/$defs/name_version__or__hash"
+        },
+        "nix": {
+          "$ref": "#/$defs/name_version__or__hash"
+        },
         "input": {
           "type": "object",
           "patternProperties": {
@@ -197,12 +203,18 @@
                   },
                   "path_in_container": {
                     "$ref": "#/$defs/path_pattern"
+                  },
+                  "environment_var_in_container": {
+                    "$ref": "#/$defs/alphanumeric_name"
                   }
                 },
                 "required": [
                   "type",
-                  "format",
-                  "path_in_container"
+                  "format"
+                ],
+                "oneOf": [
+                  { "required": ["path_in_container"], "not": { "required": ["environment_var_in_container"] } },
+                  { "required": ["environment_var_in_container"], "not": { "required": ["path_in_container"] } }
                 ],
                 "additionalProperties": false
               }
@@ -212,9 +224,13 @@
       },
       "required": [
         "name",
-        "image",
         "input",
         "output"
+      ],
+      "oneOf": [
+        { "required": ["image"] },
+        { "required": ["bash"] },
+        { "required": ["nix"] }
       ],
       "additionalProperties": false
     },

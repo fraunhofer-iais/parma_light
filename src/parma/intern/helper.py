@@ -10,12 +10,36 @@ import toml
 from python_on_whales import docker
 from python_on_whales import DockerException
 import os
+import platform
 import stat
 import logging
 from intern import msg
 import intern.dbc as dbc
 
+def _running_in_docker() -> bool:
+    """
+    Return True if the process likely runs inside a container (Linux).
+    Combines several heuristics: /.dockerenv and /proc/1/cgroup.
+    """
+    import os
+    try:
+        # quick check: Docker creates this file for many images
+        if os.path.exists("/.dockerenv"):
+            return True
+        # check cgroup info for container runtime indicators
+        if os.path.exists("/proc/1/cgroup"):
+            with open("/proc/1/cgroup", "rt") as f:
+                data = f.read()
+            indicators = ("docker", "kubepods", "containerd", "lxc", "podman")
+            if any(tok in data for tok in indicators):
+                return True
+    except Exception:
+        pass
+    return False
 
+
+WINDOWS = True if os.name == 'nt' or platform.system() == 'Windows' else False
+RUNNING_IN_CONTAINER = _running_in_docker()
 logger = logging.getLogger(__name__)
 
 
@@ -37,31 +61,21 @@ def load_toml_config(config_file: Path) -> dict:
 
 
 def set_file_readonly(file_path: str) -> None:
-    """
-    Sets an existing file to read-only for all users.
-
-    Args:
-        file_path (str): The path of the file to set as read-only.
-    """
     os.chmod(file_path, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
 
 def set_file_writable(file_path: str) -> None:
-    """
-    Sets an existing file to writable for all users.
-
-    Args:
-        file_path (str): The path of the file to set as writable.
-    """
     os.chmod(
-        file_path,
-        stat.S_IRUSR
-        | stat.S_IWUSR
-        | stat.S_IRGRP
-        | stat.S_IWGRP
-        | stat.S_IROTH
-        | stat.S_IWOTH,
+        file_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH,
     )
+
+
+def set_file_executable(file_path: str) -> None:
+    """
+    no effect on windows :-<
+    """
+    mode = os.stat(file_path).st_mode
+    os.chmod(file_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 def get_date() -> str:

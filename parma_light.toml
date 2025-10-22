@@ -1,15 +1,32 @@
 # Parma Light Configuration
 
 # data storage
+# ALL pathes below must be given as the host operating system requires it.
+# - Absolute pathes on Linux start with "/" and on Windows with "<drive>:" (e.g. "C:").
+# - Relative pathes are resolved relative to the current working directory, as usual.
+# "base_dir" is a directory which is used by the user to upload files with a relative path: the file is
+# resolved relative to "base_dir".
+# if Parma Light is run in a container ("dood"), this is the ONLY possibility to upload files.  
+# if Parma Light is run on the local machine ("local"), "base_dir" can be used in the same way,
+# but by using an absolute path all files on the host operating system can be accessed directly.
 [store]
+type = "dood"
+
 entity_store = "./datastore_parma/entity_store"
 data_dir = "./datastore_parma/data_dir"
 temp_dir = "./datastore_parma/temp_dir"
+log_file = "./datastore_parma/parma_light.log"
+base_dir = "./test/test_cmds"
 
 # Server configuration
 [server]
 host = "0.0.0.0"
 port = 8080
+
+# Tool configuration
+#
+[tools]
+bash_on_linux = "/bin/bash"
 
 # for server select:
 #   "waitress", WSGI server for windows & linux, fully Python
@@ -19,11 +36,10 @@ port = 8080
 # you cannot use gunicorn (it uses worker processes and not worker threads). Currently We need sharing of data structures.
 server = "waitress"
 
-# Logging configuration
+# Logging configuration.The log-file is declared in the store-section
 [logging]
 level = "INFO"
-file = "parma_light.log"
 
-# History of user commands issued in the frontend
+# History of user commands. This property is used in the frontend
 [history]
-file = "parma_light_cli_history"
+file = "./parma_light_cli_history"

@@ -1,34 +1,34 @@
 data {
-    "name": "readme",
+    "name": "run_txt",
     "type": "file",
     "storage": "platform",
     "hash": "true",
     "format": "any", 
-    "user_path": "test/test_cmds/sklearn/run.txt"
+    "user_path": "sklearn/run.txt"
 };
 data {
-    "name": "readme",
+    "name": "run_txt",
     "type": "file",
     "storage": "extern",
     "hash": "true",
     "format": "any", 
-    "user_path": "test/test_cmds/sklearn/run.txt"
+    "user_path": "sklearn/run.txt"
 };
 data {
-    "name": "readme",
+    "name": "run_txt",
     "type": "file",
     "storage": "platform",
     "hash": "false",
     "format": "any", 
-    "user_path": "test/test_cmds/sklearn/run.txt"
+    "user_path": "sklearn/run.txt"
 };
 data {
-    "name": "readme",
+    "name": "run_txt",
     "type": "file",
     "storage": "extern",
     "hash": "false",
     "format": "any", 
-    "user_path": "test/test_cmds/sklearn/run.txt"
+    "user_path": "sklearn/run.txt"
 };
 data {
     "name": "sklearn_dir",
@@ -36,5 +36,5 @@ data {
     "storage": "extern",
     "hash": "false",
     "format": "any", 
-    "user_path": "test/test_cmds/sklearn"
+    "user_path": "sklearn"
 };

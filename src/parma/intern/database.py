@@ -4,6 +4,7 @@ from pathlib import Path
 import random
 import shutil
 import string
+import sys
 import threading
 import logging
 
@@ -13,9 +14,13 @@ import intern.dbc as dbc
 
 logger = logging.getLogger(__name__)
 
-entity_store = None
+host_os = None
+entity_store = None # used for loading and storing the entities
 data_dir = None
+data_dir_for_mount = None
 temp_dir = None
+base_dir = None
+temp_dir_for_mount = None
 tables = None
 
 # Global mutex
@@ -32,24 +37,40 @@ _min_unique_prefix_length = None # current length that is needed to identify a S
 _last_min_unique_prefix_length = None # the last value of _min_unique_prefix_length, for user messages
 
 
-def init(entity_store_config: str, data_dir_config: str, temp_dir_config: str) -> None:
+def init(host_os_config: str,
+         entity_store_config: str, data_dir_config: str, temp_dir_config: str, base_dir_config: str,
+         data_dir_for_mount_config: str, temp_dir_for_mount_config: str) -> None:
     """
     Initializes global variables and loads all database tables from JSON files.
 
     Args:
-        entity_store (str): Path to the entity store directory where JSON files are stored
-        data_dir_config (str): Path to the data directory
-        temp_dir_config (str): Path to the temporary directory
+        host_os_config (str): 'linux' or 'windows'
+        entity_store (str): the entity store directory where JSON files are stored
+        data_dir_config (str): the data directory
+        temp_dir_config (str): the temporary directory
+        base_dir_config (str): the monut point for user data uploads
+        data_dir_for_mount_config (str): Path to the data directory on the HOST machine, needed for DOOD mounts
+        temp_dir_for_mount_config (str): Path to the temporary directory on the HOST machine, needed for DOOD mounts
 
     Returns:
         None
     """
-    global entity_store, data_dir, temp_dir, _user, _data, _node, _workflow, _run, tables
+    global host_os, entity_store, data_dir, temp_dir, base_dir, data_dir_for_mount, temp_dir_for_mount, _user, _data, _node, _workflow, _run, tables
+    
+    host_os = host_os_config
+
+    if host_os != 'linux' and host_os != 'windows':
+        print(f"Exit 12. host operating system must be 'linux' or 'windows', but is '{host_os}'")
+        sys.exit(12)
     
     # Convert paths to absolute Path objects (otherwise Docker will complain when mounting files from the directories)
     entity_store = Path(entity_store_config).absolute()
     data_dir = Path(data_dir_config).absolute()
     temp_dir = Path(temp_dir_config).absolute()
+    base_dir = None if base_dir_config == None else Path(base_dir_config).absolute()
+    # these strings are needed for mounting when running in a container
+    data_dir_for_mount = data_dir_for_mount_config
+    temp_dir_for_mount = temp_dir_for_mount_config
 
     # Create directories if they don't exist
     entity_store.mkdir(parents=True, exist_ok=True)
@@ -257,14 +278,19 @@ def create_a_temp_directory(length: int = 8) -> str:
         length (int, optional): Length of the random directory name. Default is 8.
 
     Returns:
-        str: The path to the created temporary directory.
+        (str, str): The path to the created temporary directory locally and for mounting with DOOD).
     """
     while True:
         rand_name = ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
-        path = os.path.join(temp_dir, rand_name)
+        path = os.path.abspath(os.path.join(temp_dir, rand_name))
+        path_for_mount = f"{temp_dir_for_mount}/{rand_name}" # TODO: replace the slash
         try:
             os.mkdir(path)
-            return path
+            if h.RUNNING_IN_CONTAINER:
+                path_for_mount = f"{temp_dir_for_mount}/{rand_name}" # TODO: replace the slash
+                return (path, path_for_mount)
+            else:
+                return (path, path)
         except FileExistsError:
             continue  # Try another random name
 

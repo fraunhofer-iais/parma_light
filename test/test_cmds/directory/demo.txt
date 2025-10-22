@@ -4,7 +4,7 @@ data {
     "storage": "extern",
     "hash": "false",
     "format": "any", 
-    "user_path": "test/test_cmds/sklearn"
+    "user_path": "sklearn"
 };
 
 node {

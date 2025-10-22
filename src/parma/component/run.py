@@ -1,5 +1,6 @@
 import os
 import copy
+import stat
 from python_on_whales import docker
 import subprocess
 import logging
@@ -13,6 +14,12 @@ import component.workflow as wf
 
 
 logger = logging.getLogger(__name__)
+bash_exe = None
+
+
+def init(base_exe_config: str):
+    global bash_exe
+    bash_exe = base_exe_config
 
 
 def get_run_hash_by_referer(referer: dict) -> str:
@@ -100,7 +107,13 @@ def run_workflow(run_def: dict, channel_bindings: dict, logged_in_user: str) -> 
     else:
         run["_success"] = False
         _add_to_log(run, f"*** workflow {run['name']} cancelled due to errors ***", log_message=True)
-    return db.enrich_and_store_in_table(db._run, run, logged_in_user)
+    hash_of_run = db.enrich_and_store_in_table(db._run, run, logged_in_user)
+    if result:
+        return hash_of_run
+    else:
+        details = f"*** workflow {run['name']} with hash {db.shrink_hash(hash_of_run)} cancelled due to errors ***"
+        dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
+
 
 def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings: dict, logged_in_user: str) -> bool:
     """
@@ -130,9 +143,17 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
             else:
                 dynamic_binding = dynamic_channel_bindings[channel_rename]
                 if dynamic_binding["type"] == "file" or dynamic_binding["type"] == "directory":
-                    path_outside = d.get_path_by_hash(dynamic_binding["hash_of_data"])
-                    path_inside = node_channel["path_in_container"]
-                    mounts.append((path_outside, path_inside))
+                    if "path_in_container" in node_channel:
+                        path_inside = node_channel["path_in_container"]
+                        path_outside = d.get_path_by_hash(dynamic_binding["hash_of_data"], for_mounting=True)
+                        mounts.append((path_outside, path_inside))
+                    elif "environment_var_in_container" in node_channel:
+                        envvar_name = node_channel["environment_var_in_container"]
+                        path_outside = d.get_path_by_hash(dynamic_binding["hash_of_data"])
+                        envvars.append((envvar_name, path_outside))
+                    else:
+                        details = f"invalid node declaration \"{str(dynamic_binding)}\""
+                        dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
                 elif dynamic_binding["type"] == "environment_var":
                     envvar_name = node_channel["environment_var_in_container"]
                     envvar_value = dynamic_binding["value"]
@@ -144,9 +165,17 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
             dynamic_binding = run["bind"][channel_rename]
             if dynamic_binding["type"] == "file" or dynamic_binding["type"] == "directory":
                 hash_of_data = d.get_data_hash_by_referer(dynamic_binding["data"])
-                path_outside = d.get_path_by_hash(hash_of_data)
-                path_inside = node_channel["path_in_container"]
-                mounts.append((path_outside, path_inside))
+                if "path_in_container" in node_channel:
+                    path_inside = node_channel["path_in_container"]
+                    path_outside = d.get_path_by_hash(hash_of_data, for_mounting=True)
+                    mounts.append((path_outside, path_inside))
+                elif "environment_var_in_container" in node_channel:
+                    envvar_name = node_channel["environment_var_in_container"]
+                    path_outside = d.get_path_by_hash(hash_of_data)
+                    envvars.append((envvar_name, path_outside))
+                else:
+                    details = f"invalid node declaration \"{str(dynamic_binding)}\""
+                    dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
             elif dynamic_binding["type"] == "environment_var":
                 envvar_name = node_channel["environment_var_in_container"]
                 envvar_value = dynamic_binding["environment_var_value"]
@@ -169,30 +198,57 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
             dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
 
         node_channel = node_def["output"][channel_output_name]
-        path_inside = node_channel["path_in_container"]
 
+        path_inside = node_channel.get("path_in_container")
+        envvar_name = node_channel.get("environment_var_in_container")
         platform_storage = not "storage" in binding_defined_in_run or binding_defined_in_run["storage"] == "platform"
         if platform_storage and binding_defined_in_run["type"] == "file":
-            temp_dir = db.create_a_temp_directory()
+            (temp_dir, temp_dir_for_mount) = db.create_a_temp_directory()
             temp_dirs.add(temp_dir)
             path_outside = os.path.join(temp_dir, channel_rename)
             _prepare_output_file(path_outside)
+            if "_image_id" in node_def:
+                path_outside_for_mount = f"{temp_dir_for_mount}/{channel_rename}"
+                mounts.append((path_outside_for_mount, path_inside))
+            elif "_bash_id" in node_def:
+                envvars.append((envvar_name, path_outside))
+            else:
+                details = f"node is neither for docker nor for bash"
+                dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
         elif not platform_storage and binding_defined_in_run["type"] == "file":
             path_outside = binding_defined_in_run["user_path"]
             path_outside = os.path.abspath(path_outside)
-            _prepare_output_file(path_outside)
+            if "_image_id" in node_def:
+                _prepare_output_file(path_outside)
+                mounts.append((path_outside, path_inside))
+            elif "_bash_id" in node_def:
+                envvars.append((envvar_name, path_outside))
+            else:
+                details = f"node is neither for docker nor for bash"
+                dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
         elif not platform_storage and binding_defined_in_run["type"] == "directory":
             path_outside = binding_defined_in_run["user_path"]
             path_outside = os.path.abspath(path_outside)
             _prepare_output_directory(path_outside)
+            if "_image_id" in node_def:
+                mounts.append((path_outside, path_inside))
+            elif "_bash_id" in node_def:
+                envvars.append((envvar_name, path_outside))
+            else:
+                details = f"node is neither for docker nor for bash"
+                dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
         else:
             details = f"invalid combination of \"storage\" and \"path\" for channel \"{str(channel_rename)}\" (pre docker)"
             dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
-        mounts.append((path_outside, path_inside))
         output_channel_to_path[channel_rename] = {"path_outside": path_outside, "binding_defined_in_run": binding_defined_in_run, "node_channel": node_channel}
 
-    image_id = node_def["_image_id"]
-    result = _run_docker_as_subprocess(run, image_id, mounts, envvars)
+    if "_image_id" in node_def:
+        result = _run_docker_as_subprocess(run, node_def["_image_id"], mounts, envvars)
+    elif "_bash_id" in node_def:
+        result = _run_bash(run, node_def["_bash_id"], envvars)
+    else:
+        details = "node is neither image nor bash"
+        dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
 
     for channel_output_name, channel_output_def in output_channel_to_path.items():
         binding_defined_in_run = channel_output_def["binding_defined_in_run"]
@@ -213,7 +269,7 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
             dynamic_channel_bindings[channel_output_name] = binding_for_next_steps
         else:
             _add_to_log(run, f'output channel "{channel_output_name}" was not generated and is not saved')
-    _add_to_log(run, f"docker run finished. Success: {result}")
+    _add_to_log(run, f"run finished. Success: {result}")
     return result
 
 def _run_workflow_node(workflow_name: str, workflow_node: dict, run: dict, super_bindings: dict, logged_in_user: str) -> bool:
@@ -288,10 +344,6 @@ def _run_docker_as_subprocess(run: dict, image_name: str, mounts: list, envvars:
     """
     command = ["docker", "run", "--rm"]
     for host_path, container_path in mounts:
-        if not os.path.isfile(host_path) and not os.path.isdir(host_path):
-            details = f"Mount error: {host_path} is not a file (only file and directory mounts are allowed)"
-            _add_to_log(run, details)
-            dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
         command.extend(["-v", f"{host_path}:{container_path}"])
     for env_name, env_val in envvars:
         command.extend(["-e", f"{env_name}={env_val}"])
@@ -312,9 +364,51 @@ def _run_docker_as_subprocess(run: dict, image_name: str, mounts: list, envvars:
             _add_to_log(run, f"stderr: {logging}")
         return True
     except subprocess.CalledProcessError as e:
+        logging = e.stdout
+        if logging and logging != "":
+            _add_to_log(run, f"stdout: {logging}")
+        logging = e.stderr
+        if logging and logging != "":
+            _add_to_log(run, f"stderr: {logging}")
         details = f"Error: Docker run failed with return code {e.returncode}"
         _add_to_log(run, details)
         return False
+
+def _run_bash(run, bash_id, envvars):
+    bash_commands = []
+    for env_name, env_val in envvars:
+        bash_commands.append(f"{env_name}=\"{env_val}\"")
+    path_bash_script = d.get_path_by_hash(bash_id).replace('\\','/')
+    bash_commands.append(path_bash_script)
+    bash_command_as_string = " ".join(bash_commands)
+    _add_to_log(
+        run, f"Running command: {bash_command_as_string}"
+    )  # Debugging: Print the constructed command
+
+    try:
+        result = subprocess.run([bash_exe, "-c", bash_command_as_string], capture_output=True, text=True, check=True)
+        logging = result.stdout.strip()
+        if logging and logging != "":
+            _add_to_log(run, f"stdout: {logging}")
+        logging = result.stderr.strip()
+        if logging and logging != "":
+            _add_to_log(run, f"stderr: {logging}")
+        return True
+    except subprocess.CalledProcessError as e:
+        logging = e.stdout
+        if logging and logging != "":
+            _add_to_log(run, f"stdout: {logging}")
+        logging = e.stderr
+        if logging and logging != "":
+            _add_to_log(run, f"stderr: {logging}")
+        details = f"Error: bash run failed with return code {e.returncode}"
+        _add_to_log(run, details)
+        return False
+    except Exception as e:
+        details = f"Error: bash run failed with general exception {e}"
+        _add_to_log(run, details)
+        return False
+    
 
 def _prepare_output_file(file_path: str) -> None:
     """
@@ -327,7 +421,7 @@ def _prepare_output_file(file_path: str) -> None:
         if not os.path.exists(file_path):
             with open(file_path, "w") as f:
                 pass  # Create an empty file
-        subprocess.run(["chmod", "ugo+w", file_path], check=True)
+        h.set_file_writable(file_path)
     except subprocess.CalledProcessError as e:
         details = f"Error: Failed to prepare output file {file_path} with return code {e.returncode}"
         dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)

@@ -1,6 +1,9 @@
+import os
 from pathlib import Path
 import argparse
 import logging
+import platform
+import sys
 
 import intern.helper as h
 import intern.dbc as dbc
@@ -239,16 +242,17 @@ def main() -> None:
     Main entry point for the parma backend.
     """
     parser = argparse.ArgumentParser(description='Parma Light Backend Server')
-    parser.add_argument('-c', '--config', help='Toml configuration file path', default='parma_light.toml')
+    parser.add_argument('-c', '--config', help='toml configuration file path', default='./parma_light.toml')
+    parser.add_argument('-d', '--debugpy', help='activate debugpy for remote debugging', default=False, action='store_true')
     args = parser.parse_args()
 
     # Load toml configuration
     toml_config_file = Path(args.config)
     toml_config = h.load_toml_config(toml_config_file)
-
+    
     # init logging
     logging_level = toml_config.get('logging', {}).get('level', logging.INFO)
-    logging_file = toml_config.get('logging', {}).get('file', 'parma_light.log')
+    logging_file = '/app/parma_light.log' if h.RUNNING_IN_CONTAINER else toml_config.get('store', {}).get('log_file', './datastore_parma/parma_light.log')
     logging.basicConfig(format='%(asctime)s - %(name)-20s - %(levelname)-8s - %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
                         filename=logging_file,
@@ -256,23 +260,52 @@ def main() -> None:
                         level=logging_level)
     logger = logging.getLogger(__name__)
 
+    # Check for remote debugging request
+    if args.debugpy:
+        if not h.RUNNING_IN_CONTAINER:
+            print("Exit 12. Remote debugging can be used only when running in a container")
+            sys.exit(12)
+        else:
+            import debugpy
+            debugpy.listen(("0.0.0.0", 5678))
+            print("⚡ VS Code debugger can now be attached, press F5 ⚡")
+            debugpy.wait_for_client()
+
     # Get the store configuration
-    entity_store = toml_config.get('store', {}).get('entity_store', './datastore_parma/entity_store')
-    data_dir = toml_config.get('store', {}).get('data_dir', './datastore_parma/data_dir')
-    temp_dir = toml_config.get('store', {}).get('temp_dir', './datastore_parma/temp_dir')
-    db.init(entity_store, data_dir, temp_dir)
+    host_os = os.environ.get("HOST_OPERATING_SYSTEM")
+    if h.RUNNING_IN_CONTAINER:
+        logger.info("parma light is running in a docker container based on linux")
+        entity_store = '/entity_store'
+        data_dir = '/data_dir'
+        temp_dir = '/temp_dir'
+        base_dir = '/base_dir'
+        data_dir_for_mount = os.environ.get("PARMA_LIGHT_DATA_DIR_HOST")
+        temp_dir_for_mount = os.environ.get("PARMA_LIGHT_TEMP_DIR_HOST")
+    else:
+        logger.info(f"parma light is running on a local {host_os} machine")
+        entity_store = toml_config.get('store', {}).get('entity_store')
+        data_dir = toml_config.get('store', {}).get('data_dir')
+        temp_dir = toml_config.get('store', {}).get('temp_dir')
+        base_dir = toml_config.get('store', {}).get('base_dir')
+        data_dir_for_mount = None
+        temp_dir_for_mount = None
+    db.init(host_os, entity_store, data_dir, temp_dir, base_dir, data_dir_for_mount, temp_dir_for_mount)
 
     # Get host and port from config or use defaults
     host = toml_config.get('server', {}).get('host', '0.0.0.0')
     port = toml_config.get('server', {}).get('port', 8080)
-    development_server = toml_config.get('server', {}).get('server', 'waitress')
+    kind_of_server = toml_config.get('server', {}).get('server', 'waitress')
+
+    # get tool configuration
+    bash_exe = toml_config.get('tools', {}).get('bash_on_linux', '/bin/bash')
+    run.init(bash_exe)
 
     try:
-        if development_server == 'development':
+        if kind_of_server == 'development':
             app.run(host=host, port=port)
-        elif development_server == 'development_debug':
+        elif kind_of_server == 'development_debug':
             app.run(host=host, port=port, debug=True)
-        elif development_server == 'waitress':
+        elif kind_of_server == 'waitress':
             from waitress import serve
             msg.log(logger.info, {"msg": "PROD_SERVER", "wsgi": "waitress", "host": host, "port": port})
             serve(app, host=host, port=port)
