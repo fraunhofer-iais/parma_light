@@ -11,16 +11,15 @@ ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
-COPY admin-help.txt admin.sh pyproject.toml README.md ./
+COPY pyproject.toml README.md docker/run.sh ./
 COPY src ./src
 
 EXPOSE 8080
 
-RUN chmod +x admin.sh && \
+RUN chmod +x run.sh && \
     ln -s /usr/bin/python3 /usr/bin/python && \
-    uv sync
+    uv sync && \
+    mkdir /temp_dir /datastore_parma
 
-RUN mkdir /temp_dir /datastore_parma
-
-ENTRYPOINT ["/bin/bash","./admin.sh","-q","--dood-script"]
+ENTRYPOINT ["/bin/bash","./run.sh"]
 CMD []

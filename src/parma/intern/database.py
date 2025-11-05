@@ -72,12 +72,15 @@ def init(host_os_config: str,
     data_dir_for_mount = data_dir_for_mount_config
     temp_dir_for_mount = temp_dir_for_mount_config
 
-    # Create directories if they don't exist
-    entity_store.mkdir(parents=True, exist_ok=True)
-    data_dir.mkdir(parents=True, exist_ok=True)
-    temp_dir.mkdir(parents=True, exist_ok=True)
+    # all directories must exist (do not create them here)
+    if not entity_store.exists() or not entity_store.is_dir() \
+    or not data_dir.exists() or not data_dir.is_dir() \
+    or not temp_dir.exists() or not temp_dir.is_dir():
+        print("Exit 12. entity_store, data_dir or temp_dir directory don't exist")
+        sys.exit(12)
 
-    msg.log(logger.info, {"msg": "STORE", "entity_store": str(entity_store), "data_dir": str(data_dir), "temp_dir": str(temp_dir)})
+    if h.RUNNING_IN_CONTAINER:
+        msg.log(logger.info, {"msg": "STORE", "entity_store": str(entity_store), "data_dir": str(data_dir), "temp_dir": str(temp_dir)})
 
     _user = _load_json("user")
     _data = _load_json("data")

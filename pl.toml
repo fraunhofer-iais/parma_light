@@ -1,19 +1,19 @@
 # Parma Light Configuration
 
 # data storage
-# ALL pathes below must be given as the HOST operating system requires it.
+# ALL pathes below must be given as the host operating system requires it.
 # - Absolute pathes on Linux start with "/" and on Windows with "<drive>:" (e.g. "C:").
 # - Relative pathes are resolved relative to the current working directory, as usual.
-# "base_dir" is a directory which is used by the user to upload files with a relative path: the relative path the user supplies
-# in the "data" command is resolved relative to "base_dir". It only makes sense, if it exists and contains data.
+# "base_dir" is a directory which is used by the user to upload files with a relative path: the file is
+# resolved relative to "base_dir".
 # if Parma Light is run in a container ("dood"), this is the ONLY possibility to upload files.  
 # if Parma Light is run on the local machine ("local"), "base_dir" can be used in the same way,
 # but by using an absolute path all files on the host operating system can be accessed directly.
 [store]
-entity_store = "./datastore_parma/entity_store"
-data_dir = "./datastore_parma/data_dir"
-temp_dir = "./datastore_parma/temp_dir"
-log_file = "./datastore_parma/parma_light.log"
+entity_store = "C:/temp/datastore_parma/entity_store"
+data_dir = "C:/temp/datastore_parma/data_dir"
+temp_dir = "C:/temp/datastore_parma/temp_dir"
+log_file = "C:/temp/datastore_parma/parma_light.log"
 base_dir = "./test/test_cmds"
 
 # Server configuration
