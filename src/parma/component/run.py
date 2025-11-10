@@ -14,12 +14,16 @@ import component.workflow as wf
 
 
 logger = logging.getLogger(__name__)
-bash_exe = None
+bash_on_linux = None
+bash_on_windows = None
+nix_on_linux = None
 
 
-def init(base_exe_config: str):
-    global bash_exe
-    bash_exe = base_exe_config
+def init(bash_on_linux_config: str, bash_on_windows_config: str, nix_on_linux_config: str):
+    global bash_on_linux, bash_on_windows, nix_on_linux
+    bash_on_linux = bash_on_linux_config
+    bash_on_windows = bash_on_windows_config
+    nix_on_linux = nix_on_linux_config
 
 
 def get_run_hash_by_referer(referer: dict) -> str:
@@ -212,6 +216,8 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
                 mounts.append((path_outside_for_mount, path_inside))
             elif "_bash_id" in node_def:
                 envvars.append((envvar_name, path_outside))
+            elif "nix" in node_def:
+                envvars.append((envvar_name, path_outside))
             else:
                 details = f"node is neither for docker nor for bash"
                 dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
@@ -223,6 +229,8 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
                 mounts.append((path_outside, path_inside))
             elif "_bash_id" in node_def:
                 envvars.append((envvar_name, path_outside))
+            elif "nix" in node_def:
+                envvars.append((envvar_name, path_outside))
             else:
                 details = f"node is neither for docker nor for bash"
                 dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
@@ -233,6 +241,8 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
             if "_image_id" in node_def:
                 mounts.append((path_outside, path_inside))
             elif "_bash_id" in node_def:
+                envvars.append((envvar_name, path_outside))
+            elif "nix" in node_def:
                 envvars.append((envvar_name, path_outside))
             else:
                 details = f"node is neither for docker nor for bash"
@@ -246,6 +256,10 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
         result = _run_docker_as_subprocess(run, node_def["_image_id"], mounts, envvars)
     elif "_bash_id" in node_def:
         result = _run_bash(run, node_def["_bash_id"], envvars)
+    elif "nix" in node_def:
+        uri = node_def.get("nix",{}).get("uri", None)
+        hash = node_def.get("nix",{}).get("hash", None)
+        result = _run_nix(run, uri, hash, envvars)
     else:
         details = "node is neither image nor bash"
         dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
@@ -311,7 +325,7 @@ def _run_workflow_node(workflow_name: str, workflow_node: dict, run: dict, super
             super_bindings[channel_rename] = sub_binding
 
     shrinked_hash = db.shrink_hash(sub_workflow_run_hash)
-    _add_to_log(run, f"sub workflow \"{workflow_name}\" finished. Result: {result}, Hash: {shrinked_hash}")
+    _add_to_log(run, f"sub workflow \"{workflow_name}\" finished. Result: {result}, hash: {shrinked_hash}")
     return result
 
 def _run_docker_with_whales(run: dict, image_name: str, mounts: list) -> None:
@@ -382,10 +396,16 @@ def _run_bash(run, bash_id, envvars):
     bash_commands.append(path_bash_script)
     bash_command_as_string = " ".join(bash_commands)
     _add_to_log(
-        run, f"Running command: {bash_command_as_string}"
+        run, f"Running bash command: {bash_command_as_string}"
     )  # Debugging: Print the constructed command
 
     try:
+        if h.WINDOWS:
+            details = "Error: currently no bash run on windows" # TODO: add bash run on windows if git bash is installed
+            _add_to_log(run, details)
+            return False
+    
+        bash_exe = bash_on_windows if h.WINDOWS else bash_on_linux
         result = subprocess.run([bash_exe, "-c", bash_command_as_string], capture_output=True, text=True, check=True)
         logging = result.stdout.strip()
         if logging and logging != "":
@@ -406,6 +426,48 @@ def _run_bash(run, bash_id, envvars):
         return False
     except Exception as e:
         details = f"Error: bash run failed with general exception {e}"
+        _add_to_log(run, details)
+        return False
+
+
+def _run_nix(run, uri, hash, envvars):
+    bash_commands = []
+    for env_name, env_val in envvars:
+        bash_commands.append(f"{env_name}=\"{env_val}\"")
+    bash_commands.append(nix_on_linux)
+    bash_commands.append('""' if uri == None else uri)
+    bash_commands.append('""' if hash == None else hash)
+    bash_command_as_string = " ".join(bash_commands)
+    _add_to_log(
+        run, f"Running nix command: {bash_command_as_string}"
+    )  # Debugging: Print the constructed command
+
+    try:
+        if h.WINDOWS:
+            details = "Error: no nix run on windows"
+            _add_to_log(run, details)
+            return False
+    
+        result = subprocess.run([bash_on_linux, "-c", bash_command_as_string], capture_output=True, text=True, check=True)
+        logging = result.stdout.strip()
+        if logging and logging != "":
+            _add_to_log(run, f"stdout: {logging}")
+        logging = result.stderr.strip()
+        if logging and logging != "":
+            _add_to_log(run, f"stderr: {logging}")
+        return True
+    except subprocess.CalledProcessError as e:
+        logging = e.stdout
+        if logging and logging != "":
+            _add_to_log(run, f"stdout: {logging}")
+        logging = e.stderr
+        if logging and logging != "":
+            _add_to_log(run, f"stderr: {logging}")
+        details = f"Error: nix run failed with return code {e.returncode}"
+        _add_to_log(run, details)
+        return False
+    except Exception as e:
+        details = f"Error: nix run failed with general exception {e}"
         _add_to_log(run, details)
         return False
     

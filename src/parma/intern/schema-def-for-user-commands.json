@@ -59,6 +59,24 @@
       ],
       "additionalProperties": false
     },
+    "nix_uri_or_nix_hash": {
+      "type": "object",
+      "properties": {
+        "uri": {
+          "type": "string",
+          "description": "A valid nix uri."
+        },
+        "hash": {
+          "type": "string",
+          "description": "A valid nix hash."
+        }
+      },
+      "oneOf": [
+        { "required": ["uri"] },
+        { "required": ["hash"] }
+      ],
+      "additionalProperties": false
+    },
     "type_def": {
       "type": "string",
       "enum": ["file", "directory", "environment_var"]
@@ -155,7 +173,7 @@
           "$ref": "#/$defs/name_version__or__hash"
         },
         "nix": {
-          "$ref": "#/$defs/name_version__or__hash"
+          "$ref": "#/$defs/nix_uri_or_nix_hash"
         },
         "input": {
           "type": "object",

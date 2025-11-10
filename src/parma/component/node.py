@@ -81,6 +81,13 @@ def add_node(node: dict, logged_in_user: str) -> str:
         path_to_bash_script = d.get_path_by_hash(bash_id)
         h.set_file_executable(path_to_bash_script) # TODO: better solution required. Works on linux only
         node["_bash_id"] = bash_id
+    elif "nix" in node:
+        if h.WINDOWS:
+            details = "nix nodes are not supported on windows"
+            dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
+        _validate_channel(node["input"], "environment_var_in_container")
+        _validate_channel(node["output"], "environment_var_in_container")
+        # TODO: run the nix script to get the nix hash and store it as metadata to achieve reproducability
     else:
         details = "node is neither image nor bash"
         dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)

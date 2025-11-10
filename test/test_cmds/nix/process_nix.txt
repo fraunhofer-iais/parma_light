@@ -1,0 +1,67 @@
+node {
+    "name": "nd_uri_nix",
+    "nix": { "uri": "gen-uri"},
+    "input": {
+        "string": { "type": "environment_var", "format": "str", "environment_var_in_container": "STRING"}
+    },
+    "output": {
+        "out": { "type": "file", "format": "any", "environment_var_in_container": "FILE"}
+    }
+};
+node {
+    "name": "nd_hash_nix",
+    "nix": { "uri": "repeat-uri"},
+    "input":  {
+        "count": { "type": "environment_var", "format": "str", "environment_var_in_container": "COUNT"},
+        "in": { "type": "file", "format": "any", "environment_var_in_container": "INPUT_FILE" }
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "environment_var_in_container": "OUTPUT_FILE"}
+    }
+};
+
+workflow {
+    "name": "wf_process_string_nix",
+    "input": {
+    },
+    "output": {
+        "repeated_nix":   { "type": "file", "format": "any" }
+    },
+    "bind": {
+        "string_nix":    { "type": "environment_var", "format": "str", "environment_var_value": "nix" },
+        "count_5":        { "type": "environment_var", "format": "str", "environment_var_value": "5" }
+    },
+    "connect": {
+        "generated_nix": { "type": "file", "format": "any" }
+    },
+    "nodes": {
+        "gen_nix": {
+            "node": {
+                "name": "nd_uri_nix", "version": "latest"
+            },
+            "input": {
+                "string": "string_nix"
+            },
+            "output": {
+                "out": "generated_nix"
+            }
+        },
+        "repeat_nix": {
+            "node": {
+                "name": "nd_hash_nix", "version": "latest"
+            },
+            "input": {
+                "count": "count_5",
+                "in": "generated_nix"
+            },
+            "output": {
+                "out": "repeated_nix"
+            }
+        }
+    }
+};
+
+run {
+    "name": "run_process_string_nix",
+    "workflow": { "name": "wf_process_string_nix", "version": "latest" }
+};

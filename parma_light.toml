@@ -25,6 +25,8 @@ port = 8080
 #
 [tools]
 bash_on_linux = "/bin/bash"
+bash_on_windows = "/bin/bash"
+nix_on_linux = "./nix_tester.sh"
 
 # for server select:
 #   "waitress", WSGI server for windows & linux, fully Python

@@ -87,7 +87,7 @@ def export(param: Dict[str, Any]) -> None:
     shutil.copyfile(user_path, target_file)
 
 
-def get_name_version__hash__and__workflow_or_run_by_referer(
+def get_name_version_and_hash_and_entity_of_workflow_or_run_by_referer(
     referer: Dict[str, Any]
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """

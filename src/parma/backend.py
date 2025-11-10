@@ -194,7 +194,7 @@ def view_data_of():
     wrapper = request.get_json()
     db.assert_user_exists(wrapper["authentification_token"])
     param = wrapper["param"]
-    result, workflow_or_run = v.get_name_version__hash__and__workflow_or_run_by_referer(param)
+    result, workflow_or_run = v.get_name_version_and_hash_and_entity_of_workflow_or_run_by_referer(param)
     result["table"] = d.get_data_info_from_workflow_or_run(workflow_or_run)
     result["success"] = True
     return jsonify(result)
@@ -213,9 +213,10 @@ def view_log_of():
     wrapper = request.get_json()
     db.assert_user_exists(wrapper["authentification_token"])
     param = wrapper["param"]
-    result, workflow_or_run = v.get_name_version__hash__and__workflow_or_run_by_referer(param)
+    result, workflow_or_run = v.get_name_version_and_hash_and_entity_of_workflow_or_run_by_referer(param)
     result["log"] = workflow_or_run["_log"]
     result["success"] = True
+
     return jsonify(result)
 
 
@@ -297,8 +298,10 @@ def main() -> None:
     kind_of_server = toml_config.get('server', {}).get('server', 'waitress')
 
     # get tool configuration
-    bash_exe = toml_config.get('tools', {}).get('bash_on_linux', '/bin/bash')
-    run.init(bash_exe)
+    bash_on_linux = toml_config.get('tools', {}).get('bash_on_linux', '/bin/bash')
+    bash_on_windows = toml_config.get('tools', {}).get('bash_on_windows', '/bin/bash')
+    nix_on_linux = toml_config.get('tools', {}).get('nix_on_linux', '/bin/bash')
+    run.init(bash_on_linux, bash_on_windows, nix_on_linux)
 
     try:
         if kind_of_server == 'development':

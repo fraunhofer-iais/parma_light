@@ -20,9 +20,7 @@ def validate(instance=None, definition=None, success=True):
             pass
 
 
-# Test case for validating node_instance
-def test_node_instance():
-    # test of an image node
+def test_image_node():
     node_instance = {
         "name": "test_node",
         "image": {"name": "test_image", "version": "latest"},
@@ -49,7 +47,7 @@ def test_node_instance():
     }
     validate(instance=node_instance, definition="node_def", success=False)
 
-    # test a bash node
+def test_bash_node():
     node_instance = {
         "name": "test_node",
         "bash": {"name": "gen_string", "version": "latest"},
@@ -77,3 +75,42 @@ def test_node_instance():
     }
     validate(instance=node_instance, definition="node_def", success=False)
 
+def test_nix_node():
+    node_instance = {
+        "name": "test_node",
+        "nix": {"uri": "https://somewhere"},
+        "input": {
+            "i1": {"type": "file", "format": "any", "environment_var_in_container": "F1"},
+            "i2": {"type": "file", "format": "any", "environment_var_in_container": "F2"}
+        },
+        "output": {
+            "o": {"type": "file", "format": "any", "environment_var_in_container": "F3"}
+        }
+    }
+    validate(instance=node_instance, definition="node_def", success=True)
+
+    node_instance = {
+        "name": "test_node",
+        "nix": {"hash": "some_hash"},
+        "input": {
+            "i1": {"type": "file", "format": "any", "environment_var_in_container": "F1"},
+            "i2": {"type": "file", "format": "any", "environment_var_in_container": "F2"}
+        },
+        "output": {
+            "o": {"type": "file", "format": "any", "environment_var_in_container": "F3"}
+        }
+    }
+    validate(instance=node_instance, definition="node_def", success=True)
+
+    node_instance = {
+        "name": "test_node",
+        "nix": {"uri": "https://somewhere", "hash": "some_hash"},
+        "input": {
+            "i1": {"type": "file", "format": "any", "environment_var_in_container": "F1"},
+            "i2": {"type": "file", "format": "any", "environment_var_in_container": "F2"}
+        },
+        "output": {
+            "o": {"type": "file", "format": "any", "environment_var_in_container": "F3"}
+        }
+    }
+    validate(instance=node_instance, definition="node_def", success=False)

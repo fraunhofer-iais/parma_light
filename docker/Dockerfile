@@ -11,7 +11,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
 
-COPY pyproject.toml README.md docker/run.sh ./
+COPY pyproject.toml README.md docker/run.sh docker/nix_tester.sh ./
 COPY src ./src
 
 EXPOSE 8080

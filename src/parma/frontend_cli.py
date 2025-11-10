@@ -126,6 +126,7 @@ def run_a_command(input: str, log: bool) -> bool:
                     param["param"] =  _user_input2json(view_param)
                     result = _post_and_check("view/data_of", param)
                     if result:
+                        msg.print({"msg":"NAME_VERSION_HASH", "name": result["name"], "version": result["_version"], "hash": result["hash"]})
                         _print_table(result["table"])
                 elif sub_cmd in ["log_of", "lo"]:
                     param["param"] =  _user_input2json(view_param)
@@ -305,7 +306,7 @@ def main() -> None:
         None
     """
     parser = argparse.ArgumentParser(description='Parma Light Frontend CLI')
-    parser.add_argument('-c', '--config', help='Toml configuration file path')
+    parser.add_argument('-c', '--config', help='Toml configuration file path', default='./parma_light.toml')
     args = parser.parse_args()
 
     # Load toml configuration
