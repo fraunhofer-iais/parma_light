@@ -88,6 +88,15 @@ def get_date() -> str:
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
 
 
+def salted_hash(to_hash: str, salt: str)->str:
+    salted_input = to_hash + salt
+    hash_object = hashlib.sha1(salted_input.encode())
+    return hash_object.hexdigest()
+
+# Beispielaufruf
+
+result = salted_hash("mein_passwort", "mein_salt")
+print(result)
 def make_git_like_hash_of_bytes(bytes: bytes) -> str:
     """
     Computes a git-like SHA-1 hash for the given bytes.
