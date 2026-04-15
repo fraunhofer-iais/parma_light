@@ -17,6 +17,7 @@ dependencies = [
     "requests>=2.32.4",
     "scikit-learn>=1.6.1",
     "toml>=0.10.2",
+    "uv>=0.11.6",
     "waitress>=3.0.2",
 ]
 

@@ -51,6 +51,11 @@
             "vulns": []
         },
         {
+            "name": "debugpy",
+            "version": "1.8.17",
+            "vulns": []
+        },
+        {
             "name": "defusedxml",
             "version": "0.7.1",
             "vulns": []
@@ -63,12 +68,44 @@
         {
             "name": "filelock",
             "version": "3.19.1",
-            "vulns": []
+            "vulns": [
+                {
+                    "id": "GHSA-w853-jp5j-5j7f",
+                    "fix_versions": [
+                        "3.20.1"
+                    ],
+                    "aliases": [
+                        "CVE-2025-68146"
+                    ],
+                    "description": "### Impact  A Time-of-Check-Time-of-Use (TOCTOU) race condition allows local attackers to corrupt or truncate arbitrary user files through symlink attacks. The vulnerability exists in both Unix and Windows lock file creation where filelock checks if a file exists before opening it with O_TRUNC. An attacker can create a symlink pointing to a victim file in the time gap between the check and open, causing os.open() to follow the symlink and truncate the target file.  **Who is impacted:**  All users of filelock on Unix, Linux, macOS, and Windows systems. The vulnerability cascades to dependent libraries:  - **virtualenv users**: Configuration files can be overwritten with virtualenv metadata, leaking sensitive paths - **PyTorch users**: CPU ISA cache or model checkpoints can be corrupted, causing crashes or ML pipeline failures - **poetry/tox users**: through using virtualenv or filelock on their own.  Attack requires local filesystem access and ability to create symlinks (standard user permissions on Unix; Developer Mode on Windows 10+). Exploitation succeeds within 1-3 attempts when lock file paths are predictable.  ### Patches  Fixed in version **3.20.1**.  **Unix/Linux/macOS fix:** Added O_NOFOLLOW flag to os.open() in UnixFileLock.\\_acquire() to prevent symlink following.  **Windows fix:** Added GetFileAttributesW API check to detect reparse points (symlinks/junctions) before opening files in WindowsFileLock.\\_acquire().  **Users should upgrade to filelock 3.20.1 or later immediately.**  ### Workarounds  If immediate upgrade is not possible:  1. Use SoftFileLock instead of UnixFileLock/WindowsFileLock (note: different locking semantics, may not be suitable for all use cases) 2. Ensure lock file directories have restrictive permissions (chmod 0700) to prevent untrusted users from creating symlinks 3. Monitor lock file directories for suspicious symlinks before running trusted applications  **Warning:** These workarounds provide only partial mitigation. The race condition remains exploitable. Upgrading to version 3.20.1 is strongly recommended.  ______________________________________________________________________  ## Technical Details: How the Exploit Works  ### The Vulnerable Code Pattern  **Unix/Linux/macOS** (`src/filelock/_unix.py:39-44`):  ```python def _acquire(self) -> None:     ensure_directory_exists(self.lock_file)     open_flags = os.O_RDWR | os.O_TRUNC  # (1) Prepare to truncate     if not Path(self.lock_file).exists():  # (2) CHECK: Does file exist?         open_flags |= os.O_CREAT     fd = os.open(self.lock_file, open_flags, ...)  # (3) USE: Open and truncate ```  **Windows** (`src/filelock/_windows.py:19-28`):  ```python def _acquire(self) -> None:     raise_on_not_writable_file(self.lock_file)  # (1) Check writability     ensure_directory_exists(self.lock_file)     flags = os.O_RDWR | os.O_CREAT | os.O_TRUNC  # (2) Prepare to truncate     fd = os.open(self.lock_file, flags, ...)  # (3) Open and truncate ```  ### The Race Window  The vulnerability exists in the gap between operations:  **Unix variant:**  ``` Time    Victim Thread                          Attacker Thread ----    -------------                          --------------- T0      Check: lock_file exists? \u2192 False T1                                             \u2193 RACE WINDOW T2                                             Create symlink: lock \u2192 victim_file T3      Open lock_file with O_TRUNC         \u2192 Follows symlink         \u2192 Opens victim_file         \u2192 Truncates victim_file to 0 bytes! \u2620\ufe0f ```  **Windows variant:**  ``` Time    Victim Thread                          Attacker Thread ----    -------------                          --------------- T0      Check: lock_file writable? T1                                             \u2193 RACE WINDOW T2                                             Create symlink: lock \u2192 victim_file T3      Open lock_file with O_TRUNC         \u2192 Follows symlink/junction         \u2192 Opens victim_file         \u2192 Truncates victim_file to 0 bytes! \u2620\ufe0f ```  ### Step-by-Step Attack Flow  **1. Attacker Setup:**  ```python # Attacker identifies target application using filelock lock_path = \"/tmp/myapp.lock\"  # Predictable lock path victim_file = \"/home/victim/.ssh/config\"  # High-value target ```  **2. Attacker Creates Race Condition:**  ```python import os import threading   def attacker_thread():     # Remove any existing lock file     try:         os.unlink(lock_path)     except FileNotFoundError:         pass      # Create symlink pointing to victim file     os.symlink(victim_file, lock_path)     print(f\"[Attacker] Created: {lock_path} \u2192 {victim_file}\")   # Launch attack threading.Thread(target=attacker_thread).start() ```  **3. Victim Application Runs:**  ```python from filelock import UnixFileLock  # Normal application code lock = UnixFileLock(\"/tmp/myapp.lock\") lock.acquire()  # \u2190 VULNERABILITY TRIGGERED HERE # At this point, /home/victim/.ssh/config is now 0 bytes! ```  **4. What Happens Inside os.open():**  On Unix systems, when `os.open()` is called:  ```c // Linux kernel behavior (simplified) int open(const char *pathname, int flags) {     struct file *f = path_lookup(pathname);  // Resolves symlinks by default!      if (flags & O_TRUNC) {         truncate_file(f);  // \u2190 Truncates the TARGET of the symlink     }      return file_descriptor; } ```  Without `O_NOFOLLOW` flag, the kernel follows the symlink and truncates the target file.  ### Why the Attack Succeeds Reliably  **Timing Characteristics:**  - **Check operation** (Path.exists()): ~100-500 nanoseconds - **Symlink creation** (os.symlink()): ~1-10 microseconds - **Race window**: ~1-5 microseconds (very small but exploitable) - **Thread scheduling quantum**: ~1-10 milliseconds  **Success factors:**  1. **Tight loop**: Running attack in a loop hits the race window within 1-3 attempts 2. **CPU scheduling**: Modern OS thread schedulers frequently context-switch during I/O operations 3. **No synchronization**: No atomic file creation prevents the race 4. **Symlink speed**: Creating symlinks is extremely fast (metadata-only operation)  ### Real-World Attack Scenarios  **Scenario 1: virtualenv Exploitation**  ```python # Victim runs: python -m venv /tmp/myenv # Attacker racing to create: os.symlink(\"/home/victim/.bashrc\", \"/tmp/myenv/pyvenv.cfg\")  # Result: /home/victim/.bashrc overwritten with: # home = /usr/bin/python3 # include-system-site-packages = false # version = 3.11.2 # \u2190 Original .bashrc contents LOST + virtualenv metadata LEAKED to attacker ```  **Scenario 2: PyTorch Cache Poisoning**  ```python # Victim runs: import torch # PyTorch checks CPU capabilities, uses filelock on cache # Attacker racing to create: os.symlink(\"/home/victim/.torch/compiled_model.pt\", \"/home/victim/.cache/torch/cpu_isa_check.lock\")  # Result: Trained ML model checkpoint truncated to 0 bytes # Impact: Weeks of training lost, ML pipeline DoS ```  ### Why Standard Defenses Don't Help  **File permissions don't prevent this:**  - Attacker doesn't need write access to victim_file - os.open() with O_TRUNC follows symlinks using the *victim's* permissions - The victim process truncates its own file  **Directory permissions help but aren't always feasible:**  - Lock files often created in shared /tmp directory (mode 1777) - Applications may not control lock file location - Many apps use predictable paths in user-writable directories  **File locking doesn't prevent this:**  - The truncation happens *during* the open() call, before any lock is acquired - fcntl.flock() only prevents concurrent lock acquisition, not symlink attacks  ### Exploitation Proof-of-Concept Results  From empirical testing with the provided PoCs:  **Simple Direct Attack** (`filelock_simple_poc.py`):  - Success rate: 33% per attempt (1 in 3 tries) - Average attempts to success: 2.1 - Target file reduced to 0 bytes in \\<100ms  **virtualenv Attack** (`weaponized_virtualenv.py`):  - Success rate: ~90% on first attempt (deterministic timing) - Information leaked: File paths, Python version, system configuration - Data corruption: Complete loss of original file contents  **PyTorch Attack** (`weaponized_pytorch.py`):  - Success rate: 25-40% per attempt - Impact: Application crashes, model loading failures - Recovery: Requires cache rebuild or model retraining  **Discovered and reported by:** George Tsigourakos (@tsigouris007)"
+                },
+                {
+                    "id": "GHSA-qmgc-5h2g-mvrw",
+                    "fix_versions": [
+                        "3.20.3"
+                    ],
+                    "aliases": [
+                        "CVE-2026-22701"
+                    ],
+                    "description": "## Vulnerability Summary  **Title:** Time-of-Check-Time-of-Use (TOCTOU) Symlink Vulnerability in SoftFileLock  **Affected Component:** `filelock` package - `SoftFileLock` class **File:** `src/filelock/_soft.py` lines 17-27 **CWE:** CWE-362, CWE-367, CWE-59  ---  ## Description  A TOCTOU race condition vulnerability exists in the `SoftFileLock` implementation of the filelock package. An attacker with local filesystem access and permission to create symlinks can exploit a race condition between the permission validation and file creation to cause lock operations to fail or behave unexpectedly.  The vulnerability occurs in the `_acquire()` method between `raise_on_not_writable_file()` (permission check) and `os.open()` (file creation). During this race window, an attacker can create a symlink at the lock file path, potentially causing the lock to operate on an unintended target file or leading to denial of service.  ### Attack Scenario  ``` 1. Lock attempts to acquire on /tmp/app.lock 2. Permission validation passes 3. [RACE WINDOW] - Attacker creates: ln -s /tmp/important.txt /tmp/app.lock 4. os.open() tries to create lock file 5. Lock operates on attacker-controlled target file or fails ```  ---  ## Impact  _What kind of vulnerability is it? Who is impacted?_  This is a **Time-of-Check-Time-of-Use (TOCTOU) race condition vulnerability** affecting any application using `SoftFileLock` for inter-process synchronization.  **Affected Users:** - Applications using `filelock.SoftFileLock` directly - Applications using the fallback `FileLock` on systems without `fcntl` support (e.g., GraalPy)  **Consequences:** - **Silent lock acquisition failure** - applications may not detect that exclusive resource access is not guaranteed - **Denial of Service** - attacker can prevent lock file creation by maintaining symlink - **Resource serialization failures** - multiple processes may acquire \"locks\" simultaneously - **Unintended file operations** - lock could operate on attacker-controlled files  **CVSS v4.0 Score:** 5.6 (Medium) **Vector:** CVSS:4.0/AV:L/AT:L/PR:L/UI:N/VC:N/VI:L/VA:H/SC:N/SI:N/SA:N  **Attack Requirements:** - Local filesystem access to the directory containing lock files - Permission to create symlinks (standard for regular unprivileged users on Unix/Linux) - Ability to time the symlink creation during the narrow race window  ---  ## Patches  _Has the problem been patched? What versions should users upgrade to?_  Yes, the vulnerability has been patched by adding the `O_NOFOLLOW` flag to prevent symlink following during lock file creation.  **Patched Version:** Next release (commit: 255ed068bc85d1ef406e50a135e1459170dd1bf0)  **Mitigation Details:** - The `O_NOFOLLOW` flag is added conditionally and gracefully degrades on platforms without support - On platforms with `O_NOFOLLOW` support (most modern systems): symlink attacks are completely prevented - On platforms without `O_NOFOLLOW` (e.g., GraalPy): TOCTOU window remains but is documented  **Users should:** - Upgrade to the patched version when available - For critical deployments, consider using `UnixFileLock` or `WindowsFileLock` instead of the fallback `SoftFileLock`  ---  ## Workarounds  _Is there a way for users to fix or remediate the vulnerability without upgrading?_  For users unable to update immediately:  1. **Avoid `SoftFileLock` in security-sensitive contexts** - use `UnixFileLock` or `WindowsFileLock` when available (these were already patched for CVE-2025-68146)  2. **Restrict filesystem permissions** - prevent untrusted users from creating symlinks in lock file directories:    ```bash    chmod 700 /path/to/lock/directory    ```  3. **Use process isolation** - isolate untrusted code from lock file paths to prevent symlink creation  4. **Monitor lock operations** - implement application-level checks to verify lock acquisitions are successful before proceeding with critical operations  ---  ## References  _Are there any links users can visit to find out more?_  - **Similar Vulnerability:** CVE-2025-68146 (TOCTOU vulnerability in UnixFileLock/WindowsFileLock) - **CWE-362 (Concurrent Execution using Shared Resource):** https://cwe.mitre.org/data/definitions/362.html - **CWE-367 (Time-of-check Time-of-use Race Condition):** https://cwe.mitre.org/data/definitions/367.html - **CWE-59 (Improper Link Resolution Before File Access):** https://cwe.mitre.org/data/definitions/59.html - **O_NOFOLLOW documentation:** https://man7.org/linux/man-pages/man2/open.2.html - **GitHub Repository:** https://github.com/tox-dev/filelock  ---  **Reported by:** George Tsigourakos (@tsigouris007)"
+                }
+            ]
         },
         {
             "name": "flask",
             "version": "3.1.1",
-            "vulns": []
+            "vulns": [
+                {
+                    "id": "GHSA-68rp-wp8r-4726",
+                    "fix_versions": [
+                        "3.1.3"
+                    ],
+                    "aliases": [
+                        "CVE-2026-27205"
+                    ],
+                    "description": "When the `session` object is accessed, Flask should set the `Vary: Cookie` header. This instructs caches not to cache the response, as it may contain information specific to a logged in user. This is handled in most cases, but some forms of access such as the Python `in` operator were overlooked.  The severity depends on the application's use of the session, and the cache's behavior regarding cookies. The risk depends on all these conditions being met.  1. The application must be hosted behind a caching proxy that does not ignore responses with cookies. 2. The application does not set a `Cache-Control` header to indicate that a page is private or should not be cached. 3. The application accesses the session in a way that does not access the values, only the keys, and does not mutate the session."
+                }
+            ]
         },
         {
             "name": "idna",
@@ -161,11 +198,39 @@
             "vulns": [
                 {
                     "id": "GHSA-4xh5-x5gv-qwph",
-                    "fix_versions": [],
+                    "fix_versions": [
+                        "25.3"
+                    ],
                     "aliases": [
                         "CVE-2025-8869"
                     ],
-                    "description": "### Summary  In the fallback extraction path for source distributions, `pip` used Python\u2019s `tarfile` module without verifying that symbolic/hard link targets resolve inside the intended extraction directory. A malicious sdist can include links that escape the target directory and overwrite arbitrary files on the invoking host during `pip install`.  ### Impact  Successful exploitation enables arbitrary file overwrite outside the build/extraction directory on the machine running `pip`. This can be leveraged to tamper with configuration or startup files and may lead to further code execution depending on the environment, but the direct, guaranteed impact is integrity compromise on the vulnerable system.  ### Conditions  The issue is triggered when installing an attacker-controlled sdist (e.g., from an index or URL) and the fallback extraction code path is used. No special privileges are required beyond running `pip install`; active user action is necessary.  ### Remediation  The [fix](https://github.com/pypa/pip/pull/13550), while available as a patch that can be manually applied, has not yet been put into a numbered version but is planned for `25.3`. Using a Python interpreter that implements the safe-extraction behavior described by **PEP 706** provides additional defense in depth for other `tarfile` issues but is not a substitute for upgrading pip for this specific flaw."
+                    "description": "When extracting a tar archive pip may not check symbolic links point into the extraction directory if the tarfile module doesn't implement PEP 706. Note that upgrading pip to a \"fixed\" version for this vulnerability doesn't fix all known vulnerabilities that are remediated by using a Python version that implements PEP 706. Note that this is a vulnerability in pip's fallback implementation of tar extraction for Python versions that don't implement PEP 706 and therefore are not secure to all vulnerabilities in the Python 'tarfile' module. If you're using a Python version that implements PEP 706 then pip doesn't use the \"vulnerable\" fallback code. Mitigations include upgrading to a version of pip that includes the fix, upgrading to a Python version that implements PEP 706 (Python >=3.9.17, >=3.10.12, >=3.11.4, or >=3.12), applying the linked patch, or inspecting source distributions (sdists) before installation as is already a best-practice."
+                },
+                {
+                    "id": "GHSA-6vgw-5pg2-w6jp",
+                    "fix_versions": [
+                        "26.0"
+                    ],
+                    "aliases": [
+                        "CVE-2026-1703"
+                    ],
+                    "description": "When pip is installing and extracting a maliciously crafted wheel archive, files may be extracted outside the installation directory. The path traversal is limited to prefixes of the installation directory, thus isn't able to inject or overwrite executable files in typical situations."
+                },
+                {
+                    "id": "ECHO-ffe1-1d3c-d9bc",
+                    "fix_versions": [
+                        "25.2+echo.1"
+                    ],
+                    "aliases": [],
+                    "description": ""
+                },
+                {
+                    "id": "ECHO-7db2-03aa-5591",
+                    "fix_versions": [
+                        "25.2+echo.1"
+                    ],
+                    "aliases": [],
+                    "description": ""
                 }
             ]
         },
@@ -222,7 +287,18 @@
         {
             "name": "pygments",
             "version": "2.19.2",
-            "vulns": []
+            "vulns": [
+                {
+                    "id": "GHSA-5239-wwwm-4pmq",
+                    "fix_versions": [
+                        "2.20.0"
+                    ],
+                    "aliases": [
+                        "CVE-2026-4539"
+                    ],
+                    "description": "A security flaw has been discovered in pygments before 2.20.0. The impacted element is the function AdlLexer of the file pygments/lexers/archetype.py. The manipulation results in inefficient regular expression complexity. The attack is only possible with local access. The exploit has been released to the public and may be used for attacks. The project was informed of the problem early through an issue report but has not responded yet."
+                }
+            ]
         },
         {
             "name": "pyparsing",
@@ -232,7 +308,18 @@
         {
             "name": "pytest",
             "version": "8.4.1",
-            "vulns": []
+            "vulns": [
+                {
+                    "id": "GHSA-6w46-j5rx-g56g",
+                    "fix_versions": [
+                        "9.0.3"
+                    ],
+                    "aliases": [
+                        "CVE-2025-71176"
+                    ],
+                    "description": "pytest through 9.0.2 on UNIX relies on directories with the `/tmp/pytest-of-{user}` name pattern, which allows local users to cause a denial of service or possibly gain privileges."
+                }
+            ]
         },
         {
             "name": "python-on-whales",
@@ -247,7 +334,18 @@
         {
             "name": "requests",
             "version": "2.32.4",
-            "vulns": []
+            "vulns": [
+                {
+                    "id": "GHSA-gc5v-m9x4-r6x2",
+                    "fix_versions": [
+                        "2.33.0"
+                    ],
+                    "aliases": [
+                        "CVE-2026-25645"
+                    ],
+                    "description": "### Impact The `requests.utils.extract_zipped_paths()` utility function uses a predictable filename when extracting files from zip archives into the system temporary directory. If the target file already exists, it is reused without validation. A local attacker with write access to the temp directory could pre-create a malicious file that would be loaded in place of the legitimate one.  ### Affected usages **Standard usage of the Requests library is not affected by this vulnerability.** Only applications that call `extract_zipped_paths()` directly are impacted.  ### Remediation Upgrade to at least Requests 2.33.0, where the library now extracts files to a non-deterministic location.  If developers are unable to upgrade, they can set `TMPDIR` in their environment to a directory with restricted write access."
+                }
+            ]
         },
         {
             "name": "rich",
@@ -307,6 +405,42 @@
         {
             "name": "urllib3",
             "version": "2.5.0",
+            "vulns": [
+                {
+                    "id": "GHSA-gm62-xv2j-4w53",
+                    "fix_versions": [
+                        "2.6.0"
+                    ],
+                    "aliases": [
+                        "CVE-2025-66418"
+                    ],
+                    "description": "## Impact  urllib3 supports chained HTTP encoding algorithms for response content according to RFC 9110 (e.g., `Content-Encoding: gzip, zstd`).  However, the number of links in the decompression chain was unbounded allowing a malicious server to insert a virtually unlimited number of compression steps leading to high CPU usage and massive memory allocation for the decompressed data.   ## Affected usages  Applications and libraries using urllib3 version 2.5.0 and earlier for HTTP requests to untrusted sources unless they disable content decoding explicitly.   ## Remediation  Upgrade to at least urllib3 v2.6.0 in which the library limits the number of links to 5.  If upgrading is not immediately possible, use [`preload_content=False`](https://urllib3.readthedocs.io/en/2.5.0/advanced-usage.html#streaming-and-i-o) and ensure that `resp.headers[\"content-encoding\"]` contains a safe number of encodings before reading the response content."
+                },
+                {
+                    "id": "GHSA-2xpw-w6gg-jr37",
+                    "fix_versions": [
+                        "2.6.0"
+                    ],
+                    "aliases": [
+                        "CVE-2025-66471"
+                    ],
+                    "description": "### Impact  urllib3's [streaming API](https://urllib3.readthedocs.io/en/2.5.0/advanced-usage.html#streaming-and-i-o) is designed for the efficient handling of large HTTP responses by reading the content in chunks, rather than loading the entire response body into memory at once.  When streaming a compressed response, urllib3 can perform decoding or decompression based on the HTTP `Content-Encoding` header (e.g., `gzip`, `deflate`, `br`, or `zstd`). The library must read compressed data from the network and decompress it until the requested chunk size is met. Any resulting decompressed data that exceeds the requested amount is held in an internal buffer for the next read operation.  The decompression logic could cause urllib3 to fully decode a small amount of highly compressed data in a single operation. This can result in excessive resource consumption (high CPU usage and massive memory allocation for the decompressed data; CWE-409) on the client side, even if the application only requested a small chunk of data.   ### Affected usages  Applications and libraries using urllib3 version 2.5.0 and earlier to stream large compressed responses or content from untrusted sources.  `stream()`, `read(amt=256)`, `read1(amt=256)`, `read_chunked(amt=256)`, `readinto(b)` are examples of `urllib3.HTTPResponse` method calls using the affected logic unless decoding is disabled explicitly.   ### Remediation  Upgrade to at least urllib3 v2.6.0 in which the library avoids decompressing data that exceeds the requested amount.  If your environment contains a package facilitating the Brotli encoding, upgrade to at least Brotli 1.2.0 or brotlicffi 1.2.0.0 too. These versions are enforced by the `urllib3[brotli]` extra in the patched versions of urllib3.   ### Credits  The issue was reported by @Cycloctane. Supplemental information was provided by @stamparm during a security audit performed by [7ASecurity](https://7asecurity.com/) and facilitated by [OSTIF](https://ostif.org/)."
+                },
+                {
+                    "id": "GHSA-38jv-5279-wg99",
+                    "fix_versions": [
+                        "2.6.3"
+                    ],
+                    "aliases": [
+                        "CVE-2026-21441"
+                    ],
+                    "description": "### Impact  urllib3's [streaming API](https://urllib3.readthedocs.io/en/2.6.2/advanced-usage.html#streaming-and-i-o) is designed for the efficient handling of large HTTP responses by reading the content in chunks, rather than loading the entire response body into memory at once.  urllib3 can perform decoding or decompression based on the HTTP `Content-Encoding` header (e.g., `gzip`, `deflate`, `br`, or `zstd`). When using the streaming API, the library decompresses only the necessary bytes, enabling partial content consumption.  However, for HTTP redirect responses, the library would read the entire response body to drain the connection and decompress the content unnecessarily. This decompression occurred even before any read methods were called, and configured read limits did not restrict the amount of decompressed data. As a result, there was no safeguard against decompression bombs. A malicious server could exploit this to trigger excessive resource consumption on the client (high CPU usage and large memory allocations for decompressed data; CWE-409).  ### Affected usages  Applications and libraries using urllib3 version 2.6.2 and earlier to stream content from untrusted sources by setting `preload_content=False` when they do not disable redirects.   ### Remediation  Upgrade to at least urllib3 v2.6.3 in which the library does not decode content of redirect responses when `preload_content=False`.  If upgrading is not immediately possible, disable [redirects](https://urllib3.readthedocs.io/en/2.6.2/user-guide.html#retrying-requests) by setting `redirect=False` for requests to untrusted source."
+                }
+            ]
+        },
+        {
+            "name": "uv",
+            "version": "0.11.6",
             "vulns": []
         },
         {
@@ -322,7 +456,38 @@
         {
             "name": "werkzeug",
             "version": "3.1.3",
-            "vulns": []
+            "vulns": [
+                {
+                    "id": "GHSA-hgf8-39gv-g3f2",
+                    "fix_versions": [
+                        "3.1.4"
+                    ],
+                    "aliases": [
+                        "CVE-2025-66221"
+                    ],
+                    "description": "Werkzeug's `safe_join` function allows path segments with Windows device names. On Windows, there are special device names such as `CON`, `AUX`, etc that are implicitly present and readable in every directory. `send_from_directory` uses `safe_join` to safely serve files at user-specified paths under a directory. If the application is running on Windows, and the requested path ends with a special device name, the file will be opened successfully, but reading will hang indefinitely."
+                },
+                {
+                    "id": "GHSA-87hc-h4r5-73f7",
+                    "fix_versions": [
+                        "3.1.5"
+                    ],
+                    "aliases": [
+                        "CVE-2026-21860"
+                    ],
+                    "description": "Werkzeug's `safe_join` function allows path segments with Windows device names that have file extensions or trailing spaces. On Windows, there are special device names such as `CON`, `AUX`, etc that are implicitly present and readable in every directory. Windows still accepts them with any file extension, such as `CON.txt`, or trailing spaces such as `CON `.  This was previously reported as https://github.com/pallets/werkzeug/security/advisories/GHSA-hgf8-39gv-g3f2, but the fix failed to account for compound extensions such as `CON.txt.html` or trailing spaces. It also missed some additional special names.  `send_from_directory` uses `safe_join` to safely serve files at user-specified paths under a directory. If the application is running on Windows, and the requested path ends with a special device name, the file will be opened successfully, but reading will hang indefinitely."
+                },
+                {
+                    "id": "GHSA-29vq-49wr-vm6x",
+                    "fix_versions": [
+                        "3.1.6"
+                    ],
+                    "aliases": [
+                        "CVE-2026-27199"
+                    ],
+                    "description": "Werkzeug's `safe_join` function allows Windows device names as filenames if when preceded by other path segments.  This was previously reported as https://github.com/pallets/werkzeug/security/advisories/GHSA-hgf8-39gv-g3f2, but the added filtering failed to account for the fact that `safe_join` accepts paths with multiple segments, such as `example/NUL`.  `send_from_directory` uses `safe_join` to safely serve files at user-specified paths under a directory. If the application is running on Windows, and the requested path ends with a special device name, the file will be opened successfully, but reading will hang indefinitely."
+                }
+            ]
         },
         {
             "name": "zipp",

@@ -15,6 +15,7 @@
 | click                     | 8.1.8     | BSD License                                                                            |
 | colorama                  | 0.4.6     | BSD License                                                                            |
 | cyclonedx-python-lib      | 9.1.0     | Apache Software License                                                                |
+| debugpy                   | 1.8.17    | MIT License                                                                            |
 | defusedxml                | 0.7.1     | Python Software Foundation License                                                     |
 | exceptiongroup            | 1.3.0     | MIT License                                                                            |
 | filelock                  | 3.19.1    | The Unlicense (Unlicense)                                                              |
@@ -78,5 +79,6 @@
 | typing-inspection         | 0.4.0     | MIT License                                                                            |
 | typing_extensions         | 4.13.2    | UNKNOWN                                                                                |
 | urllib3                   | 2.5.0     | UNKNOWN                                                                                |
+| uv                        | 0.11.6    | UNKNOWN                                                                                |
 | waitress                  | 3.0.2     | Zope Public License                                                                    |
 | zipp                      | 3.23.0    | UNKNOWN                                                                                |

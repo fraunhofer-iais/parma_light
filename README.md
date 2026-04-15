@@ -30,7 +30,7 @@ The SBOM togehther with potential vulnerabilities and license information are st
 Clone this repository from github, if you want to experiment with the platform and its sources.
 
 - the branch `main` contains the current published version
-- the branch `develop` contains a stable version, which will become `master` soon.
+- the branch `develop` contains a stable version, which will become `main` soon.
 - the commands of the command language interpreter (CLI), which is a front-end for the platform,
   are described in `resources/APIDOC.md`
 - the REST-endpoints of the platform backend are described in the same document.

@@ -75,6 +75,11 @@
         "Version": "9.1.0"
     },
     {
+        "License": "MIT License",
+        "Name": "debugpy",
+        "Version": "1.8.17"
+    },
+    {
         "License": "Python Software Foundation License",
         "Name": "defusedxml",
         "Version": "0.7.1"
@@ -283,6 +288,11 @@
         "License": "UNKNOWN",
         "Name": "urllib3",
         "Version": "2.5.0"
+    },
+    {
+        "License": "UNKNOWN",
+        "Name": "uv",
+        "Version": "0.11.6"
     },
     {
         "License": "Zope Public License",
