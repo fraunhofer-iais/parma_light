@@ -38,6 +38,7 @@ function get_os {
         linux)  echo linux ;;
         darwin) echo macos ;;
         msys)   echo windows ;;
+        cygwin) echo windows ;;
         *)      echo UNKNOWN ;;
     esac
 }
