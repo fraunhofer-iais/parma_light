@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 import sys
@@ -29,7 +30,7 @@ METRICS = {
 PRED_LABELS_FILE = "/data/pred_labels.json"
 TRUE_LABELS_FILE = "/data/true_labels.json"
 RESULT_FILE = "/data/result.json"
-ENVVAR_NAME = "CMD"
+METRIC_PARAMETER = "--metric"
 
 
 def compute_metric(true_labels: np.ndarray, pred_labels: np.ndarray, metric: str) -> float:
@@ -80,20 +81,24 @@ def load_ndarray_from_json(file_path, mode="r"):
 
 def main():
     try:
-        envvar_value = os.environ.get(ENVVAR_NAME)
-        print(f"Started to compute the metrics {envvar_value}")
+        # the metrics are given as command line parameter "--metric <name>[,<name>...]"
+        parser = argparse.ArgumentParser(description="compute metrics from true and predicted labels")
+        parser.add_argument(METRIC_PARAMETER, type=str, help="comma separated list of metrics, e.g. 'accuracy,f1'")
+        args = parser.parse_args()
+        metric_value = args.metric
+        if metric_value is None:
+            print(f"Error: command line parameter {METRIC_PARAMETER} is not set.")
+            sys.exit(12)
+        print(f"Started to compute the metrics {metric_value}")
 
         pred_label = load_ndarray_from_json(PRED_LABELS_FILE)
         true_label = load_ndarray_from_json(TRUE_LABELS_FILE)
 
-        if envvar_value is None:
-            print(f"Error: Environment variable {ENVVAR_NAME} is not set.")
-            sys.exit(12)
         if len(true_label) != len(pred_label):
             print("Error: Lengths of true labels and predicted labels do not match.")
             sys.exit(12)
 
-        metrics = envvar_value.split(",")
+        metrics = metric_value.split(",")
         result = {}
         for metric in metrics:
             result[metric] = compute_metric(true_label, pred_label, metric)

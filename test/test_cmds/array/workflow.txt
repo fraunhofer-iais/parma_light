@@ -1,0 +1,98 @@
+workflow {
+    "name": "wf_array",
+    "input": {
+    },
+    "output": {
+        "joined_array": { "type": "file", "format": "json" }
+    },
+    "bind": {
+        "count_10": { "type": "int", "value": 10 },
+        "count_5":  { "type": "int", "value": 5 },
+        "count_7":  { "type": "int", "value": 7 },
+        "left":     { "type": "str", "value": "left" },
+        "right":    { "type": "str", "value": "right" },
+        "count_3":  { "type": "int", "value": 3 },
+        "count_2":  { "type": "int", "value": 2 }
+    },
+    "connect": {
+        "generated_array_by_r":      { "type": "file", "format": "json" },
+        "generated_array_by_bash":   { "type": "file", "format": "json" },
+        "generated_array_by_python": { "type": "file", "format": "json" },
+        "cut_3_left":                { "type": "file", "format": "json" },
+        "cut_2_right":               { "type": "file", "format": "json" }
+    },
+    "nodes": {
+        "gen1": {
+            "node": {
+                "name": "nd_array_gen_r", "version": "latest"
+            },
+            "input": {
+                "count": "count_10"
+            },
+            "output": {
+                "out": "generated_array_by_r"
+            }
+        },
+        "gen2": {
+            "node": {
+                "name": "nd_array_gen_bash", "version": "latest"
+            },
+            "input": {
+                "count": "count_5"
+            },
+            "output": {
+                "out": "generated_array_by_bash"
+            }
+        },
+        "gen3": {
+            "node": {
+                "name": "nd_array_gen_python", "version": "latest"
+            },
+            "input": {
+                "count": "count_7"
+            },
+            "output": {
+                "out": "generated_array_by_python"
+            }
+        },
+        "cut_1": {
+            "node": {
+                "name": "nd_array_cut", "version": "latest"
+            },
+            "input":  {
+                "direction": "left",
+                "count": "count_3",
+                "in": "generated_array_by_r"
+            },
+            "output": {
+                "out": "cut_3_left"
+            }
+        },
+        "cut_2": {
+            "node": {
+                "name": "nd_array_cut", "version": "latest"
+            },
+            "input":  {
+                "direction": "right",
+                "count": "count_2",
+                "in": "cut_3_left"
+            },
+            "output": {
+                "out": "cut_2_right"
+            }
+        },
+        "join": {
+            "node": {
+                "name": "nd_array_join", "version": "latest"
+            },
+            "input":  {
+                "in_2": "generated_array_by_bash",
+                "in_3": "generated_array_by_python",
+                "in_5": "cut_2_right"
+            },
+            "output": {
+                "out": "joined_array"
+            }
+        }   
+    }
+};

@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parma Light</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="litegraph/litegraph.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <header class="app-header">
+        <div class="header-title">
+          <div class="logo">P</div>
+          <h1>Parma Light</h1>
+        </div>
+        <div class="header-right">
+          <div id="toast" class="toast hidden"></div>
+          <div class="header-status" id="login-status">Not logged in</div>
+        </div>
+      </header>
+
+      <div class="main-layout">
+        <!-- ── Sidebar ──────────────────────────────────────────── -->
+        <nav class="sidebar">
+          <div class="menu-section">
+            <button
+              class="menu-section-header expanded"
+              onclick="toggleSection(this)"
+            >
+              <span class="menu-section-icon">&#128100;</span>
+              <span class="menu-section-title">User</span>
+              <span class="menu-section-arrow">&#9658;</span>
+            </button>
+            <div class="menu-section-items expanded">
+              <button class="menu-item" data-panel="login">Login/Logout</button>
+              <button class="menu-item" data-panel="change-password">
+                Change Password
+              </button>
+            </div>
+          </div>
+
+          <div class="menu-section">
+            <button class="menu-section-header" onclick="toggleSection(this)">
+              <span class="menu-section-icon">&#128451;</span>
+              <span class="menu-section-title">Data</span>
+              <span class="menu-section-arrow">&#9658;</span>
+            </button>
+            <div class="menu-section-items">
+              <button
+                class="menu-item"
+                data-panel="data-list"
+                onclick="openDataList()"
+              >
+                List
+              </button>
+              <button class="menu-item" data-panel="data-upload">Upload</button>
+            </div>
+          </div>
+
+          <div class="menu-section">
+            <button class="menu-section-header" onclick="toggleSection(this)">
+              <span class="menu-section-icon">&#128196;</span>
+              <span class="menu-section-title">Node</span>
+              <span class="menu-section-arrow">&#9658;</span>
+            </button>
+            <div class="menu-section-items">
+              <button
+                class="menu-item"
+                data-panel="node-list"
+                onclick="openNodeList()"
+              >
+                List
+              </button>
+              <button
+                class="menu-item"
+                data-panel="node-edit"
+                onclick="openNodeEdit()"
+              >
+                Edit
+              </button>
+              <button class="menu-item" data-panel="node-upload">Upload</button>
+            </div>
+          </div>
+
+          <div class="menu-section">
+            <button class="menu-section-header" onclick="toggleSection(this)">
+              <span class="menu-section-icon">&#9654;</span>
+              <span class="menu-section-title">Workflow</span>
+              <span class="menu-section-arrow">&#9658;</span>
+            </button>
+            <div class="menu-section-items">
+              <button
+                class="menu-item"
+                data-panel="workflow-list"
+                onclick="openWorkflowList()"
+              >
+                List
+              </button>
+              <button
+                class="menu-item"
+                data-panel="workflow-edit"
+                onclick="openWorkflowEdit()"
+              >
+                Edit
+              </button>
+              <button class="menu-item" data-panel="workflow-upload">
+                Upload
+              </button>
+            </div>
+          </div>
+
+          <div class="menu-section">
+            <button class="menu-section-header" onclick="toggleSection(this)">
+              <span class="menu-section-icon">&#9655;</span>
+              <span class="menu-section-title">Run</span>
+              <span class="menu-section-arrow">&#9658;</span>
+            </button>
+            <div class="menu-section-items">
+              <button
+                class="menu-item"
+                data-panel="run-list"
+                onclick="openRunList()"
+              >
+                List
+              </button>
+            </div>
+          </div>
+
+          <div class="menu-section">
+            <button class="menu-section-header" onclick="toggleSection(this)">
+              <span class="menu-section-icon">&#9881;</span>
+              <span class="menu-section-title">Misc</span>
+              <span class="menu-section-arrow">&#9658;</span>
+            </button>
+            <div class="menu-section-items">
+              <button class="menu-item" data-panel="ui">UI Properties</button>
+              <button
+                class="menu-item"
+                data-panel="add-user"
+                onclick="openAddUser()"
+              >
+                Add User
+              </button>
+              <button
+                class="menu-item"
+                data-panel="remove-user"
+                onclick="openRemoveUser()"
+              >
+                Remove User
+              </button>
+              <button class="menu-item" data-panel="admin">Admin</button>
+            </div>
+          </div>
+        </nav>
+
+        <!-- ── Content Area ─────────────────────────────────────── -->
+        <main class="content-area">
+          <!-- Welcome -->
+          <div id="welcome-panel" class="panel active welcome-panel">
+            <div class="welcome-content">
+              <div class="welcome-icon">P</div>
+              <h2>Welcome to Parma Light</h2>
+              <p>Select a menu item on the left.</p>
+            </div>
+          </div>
+
+          <!-- ── Login ── -->
+          <div id="panel-login" class="panel">
+            <div class="panel-header"><h2>Login/Logout</h2></div>
+            <form id="form-login" onsubmit="handleLogin(event)">
+              <table class="fields-table">
+                <tbody>
+                  <tr>
+                    <td class="fields-table-key">
+                      <label for="login-name">Name</label>
+                    </td>
+                    <td class="fields-table-val">
+                      <input
+                        type="text"
+                        id="login-name"
+                        name="username"
+                        autocomplete="username"
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fields-table-key">
+                      <label for="login-password">Password</label>
+                    </td>
+                    <td class="fields-table-val">
+                      <div class="input-with-btn">
+                        <input
+                          type="password"
+                          id="login-password"
+                          name="password"
+                          autocomplete="current-password"
+                        />
+                        <button
+                          type="button"
+                          class="btn-icon"
+                          title="Show password"
+                          onclick="togglePassword('login-password', this)"
+                        >
+                          &#128065;
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Login</button>
+              </div>
+              <div class="form-actions">
+                <button
+                  type="button"
+                  id="logout-btn"
+                  class="btn btn-danger"
+                  title="Please log in first"
+                  disabled
+                  onclick="handleLogout()"
+                >
+                  Logout
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Change Password -->
+          <div id="panel-change-password" class="panel">
+            <div class="panel-header"><h2>Change Password</h2></div>
+            <form
+              id="form-change-password"
+              onsubmit="handleChangePassword(event)"
+            >
+              <table class="fields-table">
+                <tbody>
+                  <tr>
+                    <td class="fields-table-key">
+                      <label for="old-password">Old Password</label>
+                    </td>
+                    <td class="fields-table-val">
+                      <div class="input-with-btn">
+                        <input
+                          type="password"
+                          id="old-password"
+                          name="old_password"
+                          autocomplete="current-password"
+                        />
+                        <button
+                          type="button"
+                          class="btn-icon"
+                          title="Show password"
+                          onclick="togglePassword('old-password', this)"
+                        >
+                          &#128065;
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fields-table-key">
+                      <label for="new-password">New Password</label>
+                    </td>
+                    <td class="fields-table-val">
+                      <div class="input-with-btn">
+                        <input
+                          type="password"
+                          id="new-password"
+                          name="new_password"
+                          autocomplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          class="btn-icon"
+                          title="Show password"
+                          onclick="togglePassword('new-password', this)"
+                        >
+                          &#128065;
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fields-table-key">
+                      <label for="repeat-password">Repeat New Password</label>
+                    </td>
+                    <td class="fields-table-val">
+                      <div class="input-with-btn">
+                        <input
+                          type="password"
+                          id="repeat-password"
+                          name="repeat_password"
+                          autocomplete="new-password"
+                        />
+                        <button
+                          type="button"
+                          class="btn-icon"
+                          title="Show password"
+                          onclick="togglePassword('repeat-password', this)"
+                        >
+                          &#128065;
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Change</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- data: list ── -->
+          <div id="panel-data-list" class="panel">
+            <!-- list view -->
+            <div id="data-list-view">
+              <div class="panel-header">
+                <h2 id="data-list-title">Data &ndash; List</h2>
+                <div style="display: flex; gap: 8px">
+                  <button
+                    type="button"
+                    id="data-list-back"
+                    class="btn btn-secondary btn-sm"
+                    style="display: none"
+                    onclick="openRunList()"
+                  >
+                    &larr;&nbsp;Back
+                  </button>
+                </div>
+              </div>
+              <div id="data-list-container"></div>
+            </div>
+            <!-- metadata / content view -->
+            <div id="data-view" style="display: none">
+              <div class="panel-header">
+                <h2 id="data-view-title">Data &ndash; Metadata</h2>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  onclick="closeDataView()"
+                >
+                  &larr;&nbsp;Back
+                </button>
+              </div>
+              <pre id="data-view-pre" class="view-pre"></pre>
+            </div>
+          </div>
+          <!-- data: upload ── -->
+          <div id="panel-data-upload" class="panel">
+            <div class="panel-header"><h2>Data &ndash; Upload</h2></div>
+            <input
+              type="file"
+              id="data-upload-file-input"
+              style="display: none"
+              onchange="dataUploadFileSelected(this)"
+            />
+            <input
+              type="file"
+              id="data-metadata-upload-file-input"
+              style="display: none"
+              onchange="dataMetadataUploadFileSelected(this)"
+            />
+            <!-- plain file: the data definition is generated by the backend -->
+            <div class="upload-row">
+              <button
+                class="btn btn-primary"
+                title="Store the selected file as data (name: file name with '.' replaced by '_', a leading '_' if it starts with a digit)"
+                onclick="handleDataUpload()"
+              >
+                Upload
+              </button>
+              <button
+                class="btn btn-secondary"
+                onclick="
+                  document.getElementById('data-upload-file-input').click()
+                "
+              >
+                Select File
+              </button>
+              <input
+                type="text"
+                id="data-upload-filename"
+                class="upload-filename"
+                readonly
+                placeholder="No file selected"
+              />
+            </div>
+            <!-- file with one or more data definitions ('data { ... };' or JSON) -->
+            <div class="upload-row">
+              <button
+                class="btn btn-primary"
+                title="Store all data definitions of the selected file"
+                onclick="handleDataMetadataUpload()"
+              >
+                Metadata Upload
+              </button>
+              <button
+                class="btn btn-secondary"
+                onclick="
+                  document.getElementById('data-metadata-upload-file-input').click()
+                "
+              >
+                Select File
+              </button>
+              <input
+                type="text"
+                id="data-metadata-upload-filename"
+                class="upload-filename"
+                readonly
+                placeholder="No file selected"
+              />
+            </div>
+          </div>
+          <!-- node: list ── -->
+          <div id="panel-node-list" class="panel">
+            <!-- list view -->
+            <div id="node-list-view">
+              <div class="panel-header">
+                <h2>Node &ndash; List</h2>
+              </div>
+              <div id="node-list-container"></div>
+            </div>
+            <!-- metadata view -->
+            <div id="node-metadata-view" style="display: none">
+              <div class="panel-header">
+                <h2 id="node-metadata-title">Node &ndash; Metadata</h2>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  onclick="closeNodeMetadataView()"
+                >
+                  &larr;&nbsp;Back
+                </button>
+              </div>
+              <pre id="node-metadata-pre" class="view-pre"></pre>
+            </div>
+          </div>
+          <!-- node: new/edit -->
+          <div id="panel-node-edit" class="panel">
+            <div class="panel-header">
+              <h2 id="node-form-title">Node &ndash; Edit</h2>
+              <button
+                type="button"
+                id="node-edit-back"
+                class="btn btn-secondary btn-sm"
+                style="display: none"
+                onclick="backFromNodeEdit()"
+              >
+                &larr;&nbsp;Back
+              </button>
+            </div>
+            <div id="node-edit-form-container"></div>
+            <div class="form-actions">
+              <button
+                type="button"
+                id="node-edit-save"
+                class="btn btn-primary"
+                disabled
+                onclick="handleNodeFormSave()"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                id="node-edit-reset"
+                class="btn btn-secondary"
+                data-discards-changes="node-edit"
+                onclick="openNodeEdit()"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <div id="panel-node-upload" class="panel">
+            <div class="panel-header"><h2>Node &ndash; Upload</h2></div>
+            <input
+              type="file"
+              id="node-upload-file-input"
+              style="display: none"
+              onchange="nodeUploadFileSelected(this)"
+            />
+            <div class="upload-row">
+              <button class="btn btn-primary" onclick="handleNodeUpload()">
+                Upload
+              </button>
+              <button
+                class="btn btn-secondary"
+                onclick="
+                  document.getElementById('node-upload-file-input').click()
+                "
+              >
+                Select File
+              </button>
+              <input
+                type="text"
+                id="node-upload-filename"
+                class="upload-filename"
+                readonly
+                placeholder="No file selected"
+              />
+            </div>
+          </div>
+          <!-- ── Workflow: Liste ── -->
+          <div id="panel-workflow-list" class="panel">
+            <!-- list view -->
+            <div id="workflow-list-view">
+              <div class="panel-header">
+                <h2>Workflow &ndash; List</h2>
+              </div>
+              <div id="workflow-list-container"></div>
+            </div>
+            <!-- metadata view -->
+            <div id="workflow-metadata-view" style="display: none">
+              <div class="panel-header">
+                <h2 id="workflow-metadata-title">Workflow &ndash; Metadata</h2>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  onclick="closeWorkflowMetadataView()"
+                >
+                  &larr;&nbsp;Back
+                </button>
+              </div>
+              <pre id="workflow-metadata-pre" class="view-pre"></pre>
+            </div>
+          </div>
+          <!-- ── Run: Liste ── -->
+          <div id="panel-run-list" class="panel">
+            <!-- list view -->
+            <div id="run-list-view">
+              <div class="panel-header">
+                <h2>Run &ndash; List</h2>
+              </div>
+              <div id="run-list-container"></div>
+            </div>
+            <!-- metadata view -->
+            <div id="run-metadata-view" style="display: none">
+              <div class="panel-header">
+                <h2 id="run-metadata-title">Run &ndash; Metadata</h2>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  onclick="closeRunMetadataView()"
+                >
+                  &larr;&nbsp;Back
+                </button>
+              </div>
+              <pre id="run-metadata-pre" class="view-pre"></pre>
+            </div>
+          </div>
+          <!-- ── Workflow: Neu ── -->
+          <div id="panel-workflow-edit" class="panel">
+            <div class="panel-header">
+              <h2 id="workflow-edit-title">Workflow &ndash; Edit</h2>
+              <button
+                type="button"
+                id="workflow-edit-back"
+                class="btn btn-secondary btn-sm"
+                style="display: none"
+                onclick="backFromSubWorkflow()"
+              >
+                &larr;&nbsp;Back
+              </button>
+            </div>
+            <div id="lg-canvas-wrap">
+              <canvas id="workflow-litegraph"></canvas>
+            </div>
+            <div class="lg-toolbar">
+              <label for="workflow-edit-name" class="lg-toolbar-label">Name</label>
+              <input type="text" id="workflow-edit-name" class="df-input lg-toolbar-name" placeholder="workflow name" />
+              <button
+                id="workflow-edit-save"
+                class="btn btn-primary"
+                disabled
+                onclick="saveWorkflowGraph()"
+              >
+                Save
+              </button>
+              <button
+                id="workflow-edit-run"
+                class="btn btn-success"
+                disabled
+                onclick="runWorkflowFromEditor()"
+              >
+                Run
+              </button>
+            </div>
+          </div>
+          <div id="panel-workflow-upload" class="panel">
+            <div class="panel-header"><h2>Workflow &ndash; Upload</h2></div>
+            <input
+              type="file"
+              id="workflow-upload-file-input"
+              style="display: none"
+              onchange="workflowUploadFileSelected(this)"
+            />
+            <div class="upload-row">
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="handleWorkflowUpload()"
+              >
+                Upload
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="
+                  document.getElementById('workflow-upload-file-input').click()
+                "
+              >
+                Select File
+              </button>
+              <input
+                type="text"
+                id="workflow-upload-filename"
+                class="upload-filename"
+                readonly
+                placeholder="No file selected"
+              />
+            </div>
+          </div>
+          <div id="panel-workflow-download" class="panel">
+            <div class="panel-header"><h2>Workflow &ndash; Download</h2></div>
+            <p class="placeholder-text">
+              Referer-Datei: {"name":"...", "version": "1"} (version: number or "latest")
+            </p>
+            <input
+              type="file"
+              id="workflow-download-file-input"
+              style="display: none"
+              onchange="workflowDownloadFileSelected(this)"
+            />
+            <div class="upload-row">
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="handleWorkflowDownload()"
+              >
+                Download
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="
+                  document
+                    .getElementById('workflow-download-file-input')
+                    .click()
+                "
+              >
+                Select File
+              </button>
+              <input
+                type="text"
+                id="workflow-download-filename"
+                class="upload-filename"
+                readonly
+                placeholder="No file selected"
+              />
+            </div>
+          </div>
+
+          <!-- ── UI-Eigenschaften ── -->
+          <div id="panel-ui" class="panel">
+            <div class="panel-header"><h2>UI Properties</h2></div>
+
+            <h3 class="ui-section-title">Themes</h3>
+            <div class="theme-list">
+              <button
+                class="theme-card"
+                data-theme="dark"
+                onclick="applyTheme(this)"
+              >
+                <div class="theme-preview theme-preview-dark"></div>
+                <span>Dark</span>
+              </button>
+              <button
+                class="theme-card"
+                data-theme="white"
+                onclick="applyTheme(this)"
+              >
+                <div class="theme-preview theme-preview-white"></div>
+                <span>White</span>
+              </button>
+              <button
+                class="theme-card"
+                data-theme="blue"
+                onclick="applyTheme(this)"
+              >
+                <div class="theme-preview theme-preview-blue"></div>
+                <span>Blue</span>
+              </button>
+              <button
+                class="theme-card"
+                data-theme="green"
+                onclick="applyTheme(this)"
+              >
+                <div class="theme-preview theme-preview-green"></div>
+                <span>Green</span>
+              </button>
+              <button
+                class="theme-card"
+                data-theme="yellow-red"
+                onclick="applyTheme(this)"
+              >
+                <div class="theme-preview theme-preview-yellow-red"></div>
+                <span>Yellow-Red</span>
+              </button>
+            </div>
+
+            <h3 class="ui-section-title" style="margin-top: 28px">
+              Workflow Canvas Theme
+            </h3>
+            <div class="ui-prop-row">
+              <button
+                id="canvas-theme-dark"
+                class="btn btn-secondary canvas-theme-btn active"
+                onclick="applyCanvasTheme('dark', this)"
+              >
+                Dark
+              </button>
+              <button
+                id="canvas-theme-light"
+                class="btn btn-secondary canvas-theme-btn"
+                onclick="applyCanvasTheme('light', this)"
+              >
+                Light
+              </button>
+            </div>
+
+            <h3 class="ui-section-title" style="margin-top: 28px">Forms</h3>
+            <div class="ui-prop-row">
+              <label class="ui-prop-label" for="form-density-select"
+                >Form Density</label
+              >
+              <select
+                id="form-density-select"
+                class="df-select ui-prop-select"
+                onchange="applyFormDensity(this.value)"
+              >
+                <option value="standard">standard</option>
+                <option value="eng">compact</option>
+                <option value="sehr-eng">very compact</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ── Benutzer Hinzufügen ── -->
+          <div id="panel-add-user" class="panel">
+            <div class="panel-header"><h2>Add User</h2></div>
+            <div id="add-user-form-container"></div>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="handleAddUser()"
+              >
+                Add
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="openAddUser()"
+              >
+                Reset
+              </button>
+            </div>
+            <input
+              type="file"
+              id="user-upload-file-input"
+              style="display: none"
+              onchange="userUploadFileSelected(this)"
+            />
+            <div class="upload-row">
+              <button class="btn btn-primary" onclick="handleUserUpload()">
+                Upload
+              </button>
+              <button
+                class="btn btn-secondary"
+                onclick="
+                  document.getElementById('user-upload-file-input').click()
+                "
+              >
+                Select File
+              </button>
+              <input
+                type="text"
+                id="user-upload-filename"
+                class="upload-filename"
+                readonly
+                placeholder="No file selected"
+              />
+            </div>
+          </div>
+
+          <!-- ── Benutzer Entfernen ── -->
+          <div id="panel-remove-user" class="panel">
+            <div class="panel-header"><h2>Remove User</h2></div>
+            <div id="remove-user-form-container"></div>
+            <div class="form-actions">
+              <button
+                type="button"
+                class="btn btn-danger"
+                onclick="handleRemoveUser()"
+              >
+                Remove
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="openRemoveUser()"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Admin ── -->
+          <div id="panel-admin" class="panel">
+            <div class="panel-header"><h2>Admin</h2></div>
+            <div class="admin-action-list">
+              <button class="btn btn-primary" onclick="handleStore()">
+                Store
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script src="litegraph/litegraph.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

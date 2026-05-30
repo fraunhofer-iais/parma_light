@@ -20,7 +20,7 @@ this documents describes
 - `exit` OR `quit` terminate the CLI
 - `store` store all tables in the file system
 - `redirect <path>` load commands from file `<path>`. Commands may spawn many lines and are terminated by a ';'
-   as last character of a line
+  as last character of a line
 - `login <user_name>` login with <user_name>
 - `logout`
 - `locale <en OR de>` set the locale for messages
@@ -94,16 +94,15 @@ These properties can be set and reset
 
 - each endpoint uses the method `POST` and gets the data expected from the user (i.e. from the frontend) as a JSON object
 - all keys ("metadata") added by the platform when a new entity is stored, are prefixed with '\_', a key given by the user
-  _must never_ start with '_'.
+  _must never_ start with '\_'.
 - all entities (data, nodes, workflows, runs) of the parma-light platform are stored in a database in separate tables. As the primary key a hash of the content of the entity is used. This key is called "hash".
 
-- database tables contain keys **"name" and "_version"** (an int value). The pair "name" and "_version" is guaranteed to be unique. If a
-  new definition is added to the pl-database and the "name" is already used, the "_version" key is incremented automaticaly to the next
-  unused number. This is done by the platform, not the user. The do-called "latest" definition is the one with the highest "_version".
+- database tables contain keys **"name" and "\_version"** (an int value). The pair "name" and "\_version" is guaranteed to be unique. If a
+  new definition is added to the pl-database and the "name" is already used, the "\_version" key is incremented automaticaly to the next
+  unused number. This is done by the platform, not the user. The do-called "latest" definition is the one with the highest "\_version".
 
 - **the "type" key** is used in the entities "data", "node" and "workflow". The key describes the type of data. This part will be revised
   in the next future to support a rich system (directories, streams, rpc channels, ...). Currently there is only support for:
-
   - file
   - directory
   - environment_var
@@ -111,7 +110,6 @@ These properties can be set and reset
 - **the "format" key** is used in the entities "data", "node" and "workflow". The key describes the format/type of the content of channels
   and files. This part will be revised in the next future to support a rich type system (jsonschema, arrow definition, numpy types, ...).
   Currently there is only support for:
-
   - json
   - str
   - any
@@ -128,13 +126,13 @@ Add a user to the pl-database.
 {
   "name": "<user chosen name>",
   "display_name": "<user chosen display name>",
-  "su": "<super user or not: true or false>"
+  "admin": "<super user or not: true or false>"
 }
 ```
 
 Remarks:
 
-- the "_version" attribute in the pl-database attribute is always "1"
+- the "\_version" attribute in the pl-database attribute is always "1"
 - For security there are no different versions of a user with given "name".
 
 Example:
@@ -143,7 +141,7 @@ Example:
 user {
   "name":"ibudde",
   "display_name":"Inte Budde",
-  "su":false
+  "admin":false
 };
 ```
 

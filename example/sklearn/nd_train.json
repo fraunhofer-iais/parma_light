@@ -1,0 +1,12 @@
+{
+    "name": "nd_train",
+    "image": { "name": "sklearn_train", "version": "1" },
+    "input": {
+        "seed":         {"type": "environment_var", "format": "str", "environment_var_in_container": "SEED"}
+    },
+    "output": {
+        "model":       { "type": "file", "format": "any",  "path_in_container": "/data/model.pkl" },
+        "X_test":      { "type": "file", "format": "json", "path_in_container": "/data/X_test.json" },
+        "true_labels": { "type": "file", "format": "json", "path_in_container": "/data/true_labels.json" }
+    }
+}

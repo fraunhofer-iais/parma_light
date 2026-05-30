@@ -13,5 +13,5 @@ for i in range(1, 6):
             else:
                 print(f"Warning: {filename} does not contain a JSON array.")
 
-with open("/data/out.json", "w") as f:
+with open("/data/output_array.json", "w") as f:
     json.dump(result, f)

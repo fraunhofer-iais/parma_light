@@ -1,0 +1,28 @@
+{
+    "name": "wf_train",
+    "input": {
+    },
+    "output": {
+        "model_file":        { "type": "file", "format": "any" },
+        "X_test_file":       { "type": "file", "format": "any" },
+        "true_labels_file":  { "type": "file", "format": "any" }
+    },
+    "bind": {
+        "seed_setting":     { "type": "environment_var", "format": "str", "environment_var_value": "42" }
+    },
+    "connect": {
+    },
+    "nodes": {
+        "train": {
+            "node": {"name": "nd_train", "version": "latest"},
+            "input": {
+                "seed":        "seed_setting"
+            },
+            "output": {
+                "model":       "model_file",
+                "X_test":      "X_test_file",
+                "true_labels": "true_labels_file"
+            }
+        }
+    }
+}

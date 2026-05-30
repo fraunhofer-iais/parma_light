@@ -45,17 +45,17 @@ function get_os {
 
 HOST_OS="$(get_os)"
 
-function get_toml_val() {
+function get_yaml_val() {
   python - "$1" "$property_file" <<'PY'
-import sys, pathlib, json
+import sys, pathlib
 key, file = sys.argv[1], sys.argv[2]
 p = pathlib.Path(file)
 try:
-    import tomllib as tl
-    data = tl.loads(p.read_text())
+    import yaml
+    data = yaml.safe_load(p.read_text())
 except Exception:
-    import toml as tl
-    data = tl.load(p)
+    print('', end='')
+    sys.exit(0)
 cur = data
 for part in key.split('.'):
     if isinstance(cur, dict) and part in cur:
@@ -63,6 +63,7 @@ for part in key.split('.'):
     else:
         print('', end='')
         sys.exit(0)
+import json
 if isinstance(cur, (dict, list)):
     print(json.dumps(cur))
 else:
@@ -133,15 +134,16 @@ function make_image {
 function run_assess {
     uv sync
     uv lock
-    uv run pip-audit -f json | python -m json.tool >audit.json
-    uv run pip-licenses --from=mixed --format=json | python -m json.tool >licenses.json
-    uv run pip-licenses --from=mixed --format=markdown --output-file=licenses.md
+    uv run pip-audit -f json | python -m json.tool >resources/generated/audit.json
+    uv run pip-licenses --from=mixed --format=json | python -m json.tool >resources/generated/licenses.json
+    uv run pip-licenses --from=mixed --format=markdown --output-file=resources/generated/licenses.md
+    uv export --format='cyclonedx1.5' > resources/generated/sbom.cdx.json
 }
 
-# get a path property from the toml configuration file and make it an absolute path as needed the host operating system 
-function get_toml_val_and_make_mount_path {
+# get a path property from the yaml configuration file and make it an absolute path as needed the host operating system 
+function get_yaml_val_and_make_mount_path {
     local path="$1"
-    path=$(get_toml_val "$path")
+    path=$(get_yaml_val "$path")
     if [[ "$path" == '' ]]
     then
         echo ''
@@ -152,14 +154,14 @@ function get_toml_val_and_make_mount_path {
 }
 
 # used by the --init command to get a value of a store key (a file or directory) and create and initilize directories
-function get_toml_val_and_create {
+function get_yaml_val_and_create {
     local key="$1"
     local test_op="$2"
     local init_entity_store="$3"
-    local path=$(get_toml_val "$key")
+    local path=$(get_yaml_val "$key")
     if [[ "$path" == '' ]]
     then
-        echo "toml key '$path' not found - exit 12" >&2
+        echo "yaml key '$path' not found - exit 12" >&2
         return 1
     fi
     case "$test_op" in
@@ -187,87 +189,78 @@ function get_toml_val_and_create {
     esac
 }
 
-if [[ "$1" == '-q' ]];
+if [[ "$1" == '' ]];
 then
-    shift
-else
-    echo "run '$0 --help' to see available commands of this bash script"
+    cat admin-help.txt
+    exit
 fi
 
 while [[ $# -gt 0 ]]; do
     cmd="$1"; shift
 
     case "$cmd" in
-    ''|-h|--help)   cat admin-help.txt ;;
+    help)           cat admin-help.txt ;;
 
-    --init)         case "$1" in
-                        --*|'') property_file='./parma_light.toml' ;;
+    init)           case "$1" in
+                        [^-]*|'') property_file='./parma_light.yaml' ;;
                         -c)     property_file="$2"; shift; shift ;;
-                        *)      echo "invalid parameter $1 for --init - exit 12" >&2
+                        *)      echo "invalid parameter $1 for init - exit 12" >&2
                                 exit 12 ;;
                     esac
         
-                    if get_toml_val_and_create 'store.entity_store' '-d' 'init'; then :; else exit 12; fi
-                    if get_toml_val_and_create 'store.data_dir' '-d'; then :; else  exit 12; fi
-                    if get_toml_val_and_create 'store.temp_dir' '-d'; then :; else  exit 12; fi
-                    if get_toml_val_and_create 'store.log_file' '-f'; then :; else  exit 12; fi ;;
+                    if get_yaml_val_and_create 'store.entity_store' '-d' 'init'; then :; else exit 12; fi
+                    if get_yaml_val_and_create 'store.data_dir' '-d'; then :; else  exit 12; fi
+                    if get_yaml_val_and_create 'store.temp_dir' '-d'; then :; else  exit 12; fi
+                    if get_yaml_val_and_create 'store.log_file' '-f'; then :; else  exit 12; fi ;;
 
-    --backend)      case "$1" in
-                        --*|'') property_file='./parma_light.toml' ;;
+    server)         case "$1" in
+                        [^-]*|'') property_file='./parma_light.yaml' ;;
                         -c)     property_file="$2"; shift; shift ;;
-                        *)      echo "invalid parameter $1 for --backend - exit 12" >&2
+                        *)      echo "invalid parameter $1 for backend - exit 12" >&2
                                 exit 12 ;;
                     esac
                     export HOST_OPERATING_SYSTEM="$HOST_OS"
-                    python src/parma/backend.py -c $property_file
+                    python src/parma/main.py -c $property_file
                     exit 0 ;;
 
-    --frontend)     case "$1" in
-                        --*|'') property_file='./parma_light.toml' ;;
-                        -c)     property_file="$2"; shift; shift ;;
-                        *)      echo "invalid parameter $1 for --frontend - exit 12" >&2
-                                exit 12 ;;
-                    esac
-                    python src/parma/frontend_cli.py -c $property_file
-                    exit 0 ;;
 
-    --image)        domain="$1"; shift
+    image)          domain="$1"; shift
                     name="$1"; shift
                     version="$1"; shift
                     make_image "$domain" "$name" "$version" ;;
 
-    --images)       domain="$1"; shift
+    images)         domain="$1"; shift
                     cd "$BASE_DIR"/test/container/"$domain"
                     for dir in */; do
                         dir_name="${dir%/}"
-                        "$BASE_DIR"/admin.sh -q --image "$domain" "$dir_name" '1'
+                        "$BASE_DIR"/admin.sh image "$domain" "$dir_name" '1'
                     done ;;
 
     # run parma-light in a container
     # 1. build the image
     # 2. run the image
-    --dood-build)   docker build --no-cache -f docker/Dockerfile -t parma_light . ;;
+    dood-build)     docker build --no-cache -f docker/Dockerfile -t parma_light . ;;
 
-    --backend-dood) docker_image='parma_light'
+    server-dood)    docker_image='parma_light'
                     debugpy=''
-                    property_file='./parma_light.toml'
+                    property_file='./parma_light.yaml'
                     while [[ 1 ]]; do
                     case "$1" in
-                        --*|'') break ;;
+                        [^-]*|'') break ;;
                         -di)    docker_image="$2"; shift; shift ;;
                         -c)     property_file="$2"; shift;shift ;;
                         -debugpy) debugpy=' -p 5678:5678'; shift ;;
-                        *)      echo "invalid parameter $1 for --dood-run - exit 12" >&2
+                        *)      echo "invalid parameter $1 for dood-run - exit 12" >&2
                                 exit 12 ;;
                     esac
                     done
                     export property_file="$(make_absolute_path $property_file)"
 
-                    entity_store="$(get_toml_val_and_make_mount_path 'store.entity_store')"; if [[ "$entity_store" == '' ]]; then exit 12; fi
-                    data_dir="$(get_toml_val_and_make_mount_path 'store.data_dir')"; if [[ "$data_dir" == '' ]]; then exit 12; fi
-                    temp_dir="$(get_toml_val_and_make_mount_path 'store.temp_dir')"; if [[ "$temp_dir" == '' ]]; then exit 12; fi
-                    log_file="$(get_toml_val_and_make_mount_path 'store.log_file')"; if [[ "$log_file" == '' ]]; then exit 12; fi
-                    base_dir="$(get_toml_val_and_make_mount_path 'store.base_dir')"; if [[ "$base_dir" == '' ]]; then exit 12; fi
+                    entity_store="$(get_yaml_val_and_make_mount_path 'store.entity_store')"; if [[ "$entity_store" == '' ]]; then exit 12; fi
+                    data_dir="$(get_yaml_val_and_make_mount_path 'store.data_dir')"; if [[ "$data_dir" == '' ]]; then exit 12; fi
+                    temp_dir="$(get_yaml_val_and_make_mount_path 'store.temp_dir')"; if [[ "$temp_dir" == '' ]]; then exit 12; fi
+                    log_file="$(get_yaml_val_and_make_mount_path 'store.log_file')"; if [[ "$log_file" == '' ]]; then exit 12; fi
+                    base_dir="$(get_yaml_val_and_make_mount_path 'store.base_dir')"; if [[ "$base_dir" == '' ]]; then exit 12; fi
 
                     cmd='docker run --name parma_light --rm -it -p 8080:8080'
                     cmd+="$debugpy"
@@ -281,7 +274,7 @@ while [[ $# -gt 0 ]]; do
                         cmd+=' -v //var/run/docker.sock:/var/run/docker.sock'
                         cmd+=' -e HOST_OPERATING_SYSTEM=windows'
                     fi
-                    cmd+=" -v $property_file:/app/parma_light.toml"
+                    cmd+=" -v $property_file:/app/parma_light.yaml"
                     cmd+=" -v $entity_store:/entity_store"
                     cmd+=" -v $data_dir:/data_dir -e PARMA_LIGHT_DATA_DIR_HOST=\"$data_dir\""
                     cmd+=" -v $temp_dir:/temp_dir -e PARMA_LIGHT_TEMP_DIR_HOST=\"$temp_dir\""
@@ -296,9 +289,10 @@ while [[ $# -gt 0 ]]; do
                     eval "$cmd"
                     exit 0 ;;
     
-    --assess)       run_assess ;;
+    # quality related commands
+    assess)         run_assess ;;
 
-    --publish-new-version) checkBranchClean
+    publish-new-version) checkBranchClean
                     B=$(getBranchName)
                     case "$B" in
                     master) : ;;
@@ -315,6 +309,36 @@ while [[ $# -gt 0 ]]; do
                     git push origin "$version"
                     echo "created and pushed tag '$version'. A github action will create the image and push to docker hub" ;; 
 
+
+    # for easy testing and demonstration upload some info
+    init-datastore) UPLOAD_SKLEARN=${1:-1};shift
+                    UPLOAD_ARRAY=${1:-1};shift
+                    UPLOAD_BASH=${1:-0};shift
+                    if [[ "$UPLOAD_SKLEARN" == 1 ]]; then
+                        echo 'upload sklearn related information for testing and demonstration'
+                        ./curl.sh --login root --password change_it --user test/test_cmds/sklearn/user.txt
+                        ./curl.sh --login sklearn --password sklearn --node test/test_cmds/sklearn/node.txt
+                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/sklearn/workflow.txt
+                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/sklearn/workflowsub.txt
+                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/sklearn/workflowif.txt
+                        ./curl.sh --login sklearn --password sklearn --run test/test_cmds/sklearn/run.txt
+                    fi
+                    if [[ "$UPLOAD_ARRAY" == 1 ]]; then
+                        echo 'upload array related information for testing and demonstration'
+                        ./curl.sh --login sklearn --password sklearn --node test/test_cmds/array/node.txt
+                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/array/workflow.txt
+                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/array/workflowsub.txt
+                    fi
+                    if [[ "$UPLOAD_BASH" == 1 ]]; then
+                        echo 'upload bash related information for testing and demonstration'
+                        ./curl.sh --login sklearn --password sklearn --data test/test_cmds/bash/data.txt
+                        ./curl.sh --login sklearn --password sklearn --node test/test_cmds/bash/node.txt
+                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/bash/workflow.txt
+                        ./curl.sh --login sklearn --password sklearn --run test/test_cmds/bash/run.txt
+                    fi
+                    echo 'uploading finished' ;;
+
+    # catch-all for invalid commands
     *)              echo "invalid command: $cmd - exit 12" >&2
                     exit 12 ;;
     esac

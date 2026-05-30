@@ -20,6 +20,11 @@
         "Version": "3.0.2"
     },
     {
+        "License": "MIT License",
+        "Name": "PyYAML",
+        "Version": "6.0.3"
+    },
+    {
         "License": "BSD License",
         "Name": "Pygments",
         "Version": "2.19.2"
@@ -60,9 +65,9 @@
         "Version": "3.4.2"
     },
     {
-        "License": "BSD License",
+        "License": "UNKNOWN",
         "Name": "click",
-        "Version": "8.1.8"
+        "Version": "8.2.1"
     },
     {
         "License": "BSD License",
@@ -85,9 +90,9 @@
         "Version": "0.7.1"
     },
     {
-        "License": "MIT License",
-        "Name": "exceptiongroup",
-        "Version": "1.3.0"
+        "License": "UNKNOWN",
+        "Name": "dotenv",
+        "Version": "0.9.9"
     },
     {
         "License": "The Unlicense (Unlicense)",
@@ -98,11 +103,6 @@
         "License": "BSD License",
         "Name": "idna",
         "Version": "3.10"
-    },
-    {
-        "License": "Apache Software License",
-        "Name": "importlib_metadata",
-        "Version": "8.7.0"
     },
     {
         "License": "MIT License",
@@ -142,7 +142,7 @@
     {
         "License": "MIT License",
         "Name": "markdown-it-py",
-        "Version": "3.0.0"
+        "Version": "4.0.0"
     },
     {
         "License": "MIT License",
@@ -157,7 +157,7 @@
     {
         "License": "BSD License",
         "Name": "numpy",
-        "Version": "2.0.2"
+        "Version": "2.2.5"
     },
     {
         "License": "MIT License",
@@ -220,7 +220,12 @@
         "Version": "8.4.1"
     },
     {
-        "License": "MIT License\n        \n        Copyright (c) 2020 Gabriel de Marmiesse de Lussan\n        \n        Permission is hereby granted, free of charge, to any person obtaining a copy\n        of this software and associated documentation files (the \"Software\"), to deal\n        in the Software without restriction, including without limitation the rights\n        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n        copies of the Software, and to permit persons to whom the Software is\n        furnished to do so, subject to the following conditions:\n        \n        The above copyright notice and this permission notice shall be included in all\n        copies or substantial portions of the Software.\n        \n        THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n        SOFTWARE.\n        ",
+        "License": "BSD-3-Clause",
+        "Name": "python-dotenv",
+        "Version": "1.2.2"
+    },
+    {
+        "License": "MIT License\n\nCopyright (c) 2020 Gabriel de Marmiesse de Lussan\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n",
         "Name": "python-on-whales",
         "Version": "0.76.1"
     },
@@ -252,7 +257,7 @@
     {
         "License": "BSD License",
         "Name": "scipy",
-        "Version": "1.13.1"
+        "Version": "1.15.2"
     },
     {
         "License": "BSD License",
@@ -298,10 +303,5 @@
         "License": "Zope Public License",
         "Name": "waitress",
         "Version": "3.0.2"
-    },
-    {
-        "License": "UNKNOWN",
-        "Name": "zipp",
-        "Version": "3.23.0"
     }
 ]

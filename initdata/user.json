@@ -1,9 +1,10 @@
 {
-    "5d1d088c8a351fc8564a0dd3be01fe0a85716be2": {
-        "date": "2025-03-12 10:33:03.934101",
-        "name": "root",
-        "display_name": "root",
-        "su": true,
-        "_version": 1
-    }
+  "d372108a2f91d71f12aa416ebaf8631d1fba925c": {
+    "_date": "2025-03-12 10:33:03.934101",
+    "_hash_of_creating_user": "0000000000000000000000000000000000000000",
+    "_password_hash": "scrypt:32768:8:1$wYvSIhQEpdRFhuXk$36545581487b9424314f5f6790f9797ce4cc955ba0a4143ba8dac27200768e0b0c95b7a4ba7affed1e5cb2a2e41a557ba94add89541fb61c3d46bfa968d36e96",
+    "_version": 1,
+    "name": "root",
+    "admin": true
+  }
 }

@@ -16,6 +16,8 @@ def get_data_hash_by_referer(referer: dict) -> str:
 
     Args:
         referer (dict): Must have 'name' and 'version' properties, or a 'hash' property, but NOT both.
+                A hash is for internal use only (e.g. by the frontend, hashes from lists); user inputs
+                (definitions, referer files) are validated against the schema "name_version" before.
 
     Returns:
         str: The hash of the data entry object.
@@ -56,6 +58,17 @@ def get_data_by_hash(hash: str) -> dict:
         )
 
 
+def get_all_data() -> list:
+    """
+    Returns a list of all data entries known to the backend, each entry
+    including its hash under the key '_hash'.
+
+    Returns:
+        list[dict]: All data objects.
+    """
+    return [dict(data, _hash=hash) for hash, data in db._data.items()]
+
+
 def get_data_info_from_workflow_or_run(workflow_or_run: dict) -> list[list]:
     """
     Retrieves detailed data information from a workflow or run.
@@ -67,7 +80,15 @@ def get_data_info_from_workflow_or_run(workflow_or_run: dict) -> list[list]:
         list[list]: A 2D array (list of lists) containing data information in tabular format.
     """
     data_array = [["hash", "name in data table", "version", "data ..."]]
+    # an if node is replaced by its branches (the module workflow can't be imported here: cyclic import)
+    used_nodes = {}
     for node_name, node in workflow_or_run["nodes"].items():
+        if "if" in node:
+            used_nodes[f"{node_name}.then"] = node["then"]
+            used_nodes[f"{node_name}.else"] = node["else"]
+        else:
+            used_nodes[node_name] = node
+    for node_name, node in used_nodes.items():
         for channel_name, channel in node["input"].items():
             if "_data_hash" in channel:
                 _append_data(data_array, f'input to channel "{channel_name}" of node "{node_name}"', channel["_data_hash"])
@@ -119,7 +140,8 @@ def add_data(
     data: dict,
     logged_in_user: str,
     ignore_errors: bool = False,
-    delete_user_path: bool = False
+    delete_user_path: bool = False,
+    source_path: str = None
 ) -> str:
     """
     Adds a new data entry to the database.
@@ -129,17 +151,22 @@ def add_data(
         logged_in_user (str): The user performing the operation.
         ignore_errors (bool): If True, ignore file errors.
         delete_user_path (bool): If True, remove '_user_path' from data after storing.
+        source_path (str): If given, the content is read from this file (e.g. a file uploaded by the
+            frontend and saved temporarily), not from "user_path". "user_path" is stored as given.
 
     Returns:
         str: The hash of the stored data entry.
     """
     h.validate_user_input(data, "data_def")
 
-    user_path = data["user_path"]
-    if _is_absolute_path(user_path):
-        user_path = os.path.abspath(user_path)
+    if source_path is not None:
+        dbc.assert_true(data["storage"] == "platform",
+                        {"msg": "SYSTEM_ERROR", "details": "uploaded content must be stored in the platform"})
+        user_path = source_path
+    elif _is_absolute_path(data["user_path"]):
+        user_path = os.path.abspath(data["user_path"])
     else:
-        user_path = os.path.join(db.base_dir, user_path)
+        user_path = os.path.join(db.base_dir, data["user_path"])
 
     store_in_platform = data["storage"] == "platform"
     use_content_hash = data["hash"] == "true"

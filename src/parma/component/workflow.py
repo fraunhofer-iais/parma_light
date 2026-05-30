@@ -14,6 +14,8 @@ def get_workflow_hash_by_referer(referer: dict) -> str:
 
     Args:
         referer (dict): Must have 'name' and 'version' properties, or a 'hash' property, but NOT both.
+                A hash is for internal use only (e.g. by the frontend, hashes from lists); user inputs
+                (definitions, referer files) are validated against the schema "name_version" before.
 
     Returns:
         str: The hash of the workflow entry object.
@@ -48,6 +50,30 @@ def get_workflow_by_hash(hash: str) -> dict:
     )
     return workflow
 
+def get_all_workflows() -> list:
+    """
+    Returns a list of all workflow entries known to the backend, each entry
+    including its hash under the key '_hash'.
+
+    Returns:
+        list[dict]: All workflow objects.
+    """
+    return [dict(workflow, _hash=hash) for hash, workflow in db._workflow.items()]
+
+def delete_workflow(hash: str, logged_in_user: str) -> None:
+    """
+    Deletes a workflow entry from the database by its hash.
+
+    Args:
+        hash (str): The hash of the workflow entry to delete.
+        logged_in_user (str): The user performing the operation.
+
+    Raises:
+        Raises an error if the workflow entry is not found.
+    """
+    dbc.assert_true(hash in db._workflow, {"msg": "NOT_FOUND", "kind": "workflow definition", "name": hash})
+    del db._workflow[hash]
+
 def add_workflow(workflow: dict, logged_in_user: str) -> str:
     """
     Adds a new workflow entry to the database after validating its structure and channels.
@@ -59,6 +85,8 @@ def add_workflow(workflow: dict, logged_in_user: str) -> str:
     Returns:
         str: The hash of the added workflow entry.
     """
+    n.validate_channel_types(workflow.get("bind"), "bind")
+    _default_format_of_constant_binds(workflow.get("bind"))
     h.validate_user_input(workflow, "workflow_def")
     h.all_keys_different(
         [workflow["input"].keys(),
@@ -67,27 +95,15 @@ def add_workflow(workflow: dict, logged_in_user: str) -> str:
          workflow["connect"].keys()
         ]
     )
-    for node in workflow["nodes"].values():
-        if "node" in node:
-            node_usage = node["node"]
-            hash_of_node_def = n.get_node_hash_by_referer(node_usage)
-            node["_hash_of_node_def"] = hash_of_node_def
-            node_def = n.get_node_by_hash(hash_of_node_def)
-            _validate_node_def_matches_node_use("node", node_usage, node_def, node)
-            _validate_renamings("node", node_usage, node["input"], [workflow["input"], workflow["bind"], workflow["connect"]])
-            _validate_renamings("node", node_usage, node["output"], [workflow["output"], workflow["connect"]])
-        elif "workflow" in node:
-            workflow_usage = node["workflow"]
-            hash_of_workflow_def = get_workflow_hash_by_referer(workflow_usage)
-            node["_hash_of_workflow_def"] = hash_of_workflow_def
-            workflow_def = get_workflow_by_hash(hash_of_workflow_def)
-            _validate_node_def_matches_node_use("sub workflow", workflow_usage, workflow_def, node)
-            _validate_renamings("sub workflow", workflow_usage, node["input"], [workflow["input"], workflow["bind"], workflow["connect"]])
-            _validate_renamings("sub workflow", workflow_usage, node["output"], [workflow["output"], workflow["connect"]]) 
+    for node_name, node in workflow["nodes"].items():
+        if "if" in node:
+            _validate_if_node(node_name, node, workflow)
+        else:
+            _validate_used_node(node, workflow)
     all_renamings = set(
             renaming
             for node in workflow["nodes"].values()
-            for renaming in list(node["input"].values()) + list(node["output"].values())
+            for renaming in node_input_channels(node) + node_output_channels(node)
         )
     _validate_wf_channel_used(workflow["input"].keys(), all_renamings)
     _validate_wf_channel_used(workflow["output"].keys(), all_renamings)
@@ -95,6 +111,7 @@ def add_workflow(workflow: dict, logged_in_user: str) -> str:
     _validate_wf_channel_used(workflow["connect"].keys(), all_renamings)
     _validate_full_channel_def(workflow["output"].values())
     _validate_full_channel_def(workflow["connect"].values())
+    _validate_bind_values(workflow["bind"])
     # _modify_workflow_if_it_is_based_on_another_workflow(workflow)
     input_output_connections = _validate_graph(workflow)
     topological_order = _sort_graph(input_output_connections, workflow)
@@ -109,10 +126,94 @@ def add_workflow(workflow: dict, logged_in_user: str) -> str:
         topological_order = topological_order[::-1]
 
     workflow["_topological_order"] = topological_order
-    
-    h.check_that_node_channels_are_bound(workflow["nodes"], n.get_node_by_hash, get_workflow_by_hash)
+
+    h.check_that_node_channels_are_bound(used_nodes(workflow["nodes"]), n.get_node_by_hash, get_workflow_by_hash)
 
     return db.enrich_and_store_in_table(db._workflow, workflow, logged_in_user)
+
+
+# -- if nodes ---------------------------------------------------------------------------------------
+# An if node of a workflow has a channel "if" of type bool and two branches "then" and "else". A branch
+# is a node or a sub workflow with its channel renamings (like a normal workflow node). Depending on the
+# value of the "if" channel exactly one branch is executed. The branches may read different channels,
+# but must write the SAME channels (with equal type and format). The output names of the branches may
+# differ. Thus an if node is a function: it reads the "if" channel and the inputs of both branches and
+# writes the common output channels.
+IF_BRANCHES = ("then", "else")
+
+
+def node_input_channels(node: dict) -> list:
+    """the workflow channels read by a workflow node. An if node reads the "if" channel and the inputs of both branches"""
+    if "if" in node:
+        return [node["if"]] + [channel for branch in IF_BRANCHES for channel in node[branch]["input"].values()]
+    return list(node["input"].values())
+
+
+def node_output_channels(node: dict) -> list:
+    """the workflow channels written by a workflow node. The branches of an if node write the same channels"""
+    if "if" in node:
+        return list(node["then"]["output"].values())
+    return list(node["output"].values())
+
+
+def used_nodes(nodes: dict) -> dict:
+    """the nodes and sub workflows used in the workflow nodes: an if node is replaced by its branches
+    (named "<node name>.then" and "<node name>.else")"""
+    result = {}
+    for node_name, node in nodes.items():
+        if "if" in node:
+            for branch in IF_BRANCHES:
+                result[f"{node_name}.{branch}"] = node[branch]
+        else:
+            result[node_name] = node
+    return result
+
+
+def _validate_used_node(node: dict, workflow: dict) -> dict:
+    """validates a node or sub workflow used in a workflow (a workflow node or a branch of an if node),
+    stores the hash of its definition in it and returns its definition"""
+    if "node" in node:
+        kind, usage = "node", node["node"]
+        hash_of_def = n.get_node_hash_by_referer(usage)
+        node["_hash_of_node_def"] = hash_of_def
+        definition = n.get_node_by_hash(hash_of_def)
+    else:
+        kind, usage = "sub workflow", node["workflow"]
+        hash_of_def = get_workflow_hash_by_referer(usage)
+        node["_hash_of_workflow_def"] = hash_of_def
+        definition = get_workflow_by_hash(hash_of_def)
+    _validate_node_def_matches_node_use(kind, usage, definition, node)
+    _validate_renamings(kind, usage, node["input"], [workflow["input"], workflow["bind"], workflow["connect"]])
+    _validate_renamings(kind, usage, node["output"], [workflow["output"], workflow["connect"]])
+    return definition
+
+
+def _validate_if_node(node_name: str, node: dict, workflow: dict) -> None:
+    """validates an if node: the "if" channel is a bool, both branches are valid and write the same channels"""
+    def invalid(reason):
+        dbc.raise_error({"msg": "INVALID_WORKFLOW", "reason": f"if node \"{node_name}\": {reason}"})
+
+    condition = node["if"]
+    condition_def = workflow["input"].get(condition) or workflow["bind"].get(condition) or workflow["connect"].get(condition)
+    if condition_def is None:
+        invalid(f"the condition channel \"{condition}\" is not defined")
+    if condition_def["type"] != "bool":
+        invalid(f"the condition channel \"{condition}\" must be of type bool, not {condition_def['type']}")
+    output_def_of_channel = {}  # branch -> channel -> definition of the branch output writing it
+    for branch in IF_BRANCHES:
+        definition = _validate_used_node(node[branch], workflow)
+        outputs = node[branch]["output"]
+        if len(set(outputs.values())) != len(outputs):
+            invalid(f"the {branch} branch writes a channel more than once")
+        output_def_of_channel[branch] = {channel: definition["output"][name] for name, channel in outputs.items()}
+    then_outputs, else_outputs = output_def_of_channel["then"], output_def_of_channel["else"]
+    if set(then_outputs) != set(else_outputs):
+        invalid(f"both branches must write the same channels (then: {sorted(then_outputs)}, else: {sorted(else_outputs)})")
+    for channel, then_def in then_outputs.items():
+        else_def = else_outputs[channel]
+        if (then_def["type"], then_def.get("format")) != (else_def["type"], else_def.get("format")):
+            invalid(f"channel \"{channel}\" is written with different type or format by the branches "
+                    f"({then_def['type']}/{then_def.get('format')} and {else_def['type']}/{else_def.get('format')})")
 
 def refine_workflow(refinement: dict, logged_in_user: str) -> str:
     """
@@ -126,6 +227,8 @@ def refine_workflow(refinement: dict, logged_in_user: str) -> str:
     Returns:
         str: The hash of the new workflow entry.
     """
+    n.validate_channel_types(refinement.get("replace_bind"), "bind")
+    _default_format_of_constant_binds(refinement.get("replace_bind"))
     h.validate_user_input( refinement, "refine_def")
     hash_of_workflow = get_workflow_hash_by_referer(refinement["workflow"])
     workflow_to_be_refined = db._workflow[hash_of_workflow]
@@ -135,7 +238,7 @@ def refine_workflow(refinement: dict, logged_in_user: str) -> str:
     for key in list(workflow.keys()):
         if key and key[0] == "_":
            del workflow[key]
-    for node_def in workflow["nodes"].values():
+    for node_def in used_nodes(workflow["nodes"]).values():
         node_def.pop("_hash_of_node_def", None)
         node_def.pop("_hash_of_workflow_def", None)
     if "replace_by_node" in refinement:
@@ -181,6 +284,7 @@ def _make_node_replacement(
         None
     """
     node_def_to_be_replaced = workflow["nodes"][node_name]
+    dbc.assert_true("if" not in node_def_to_be_replaced, {"msg": "REFINE_MISMATCH"})  # if nodes can't be replaced (yet)
     inputs_ok = the_replacing_node["input"].keys() == node_def_to_be_replaced["input"].keys()
     outputs_ok = the_replacing_node["output"].keys() == node_def_to_be_replaced["output"].keys()
     dbc.assert_true(inputs_ok and outputs_ok, {"msg": "REFINE_MISMATCH"})
@@ -257,6 +361,43 @@ def _validate_full_channel_def(defs) -> None:
                 break
     if error:
         dbc.raise_error({"msg": "INVALID_CHANNEL_DEF"})
+
+
+def _default_format_of_constant_binds(binds) -> None:
+    """
+    For binds of a constant type (str, int, float, bool, json) the format is optional: it defaults to "str".
+    """
+    if not isinstance(binds, dict):
+        return
+    for bind in binds.values():
+        if isinstance(bind, dict) and bind.get("type") in n.CONSTANT_TYPES:
+            bind.setdefault("format", "str")
+
+
+def _validate_bind_values(binds: dict) -> None:
+    """
+    Validates that binds of constant types (str, int, float, bool, json) carry a "value" of the
+    matching JSON type, and that a "value" is used for constant types only.
+
+    Raises:
+        Raises an error if a bind is invalid.
+    """
+    for channel_name, bind in binds.items():
+        channel_type = bind.get("type")
+        if channel_type in n.CONSTANT_TYPES:
+            dbc.assert_true(
+                "value" in bind,
+                {"msg": "INVALID_CHANNEL_USE", "name": channel_name, "reason": f"a bind of type \"{channel_type}\" needs a \"value\""}
+            )
+            dbc.assert_true(
+                h.value_matches_type(bind["value"], channel_type),
+                {"msg": "INVALID_CONSTANT", "name": channel_name, "type": channel_type}
+            )
+        else:
+            dbc.assert_true(
+                "value" not in bind,
+                {"msg": "INVALID_CHANNEL_USE", "name": channel_name, "reason": f"a bind of type \"{channel_type}\" can't have a \"value\""}
+            )
 
 
 def _keys_found_in_other_keys(keys1, keys2) -> bool:
@@ -346,14 +487,14 @@ def _validate_graph(workflow: dict) -> dict:
 
     input_output_connections = {}
     for node_name, node in workflow["nodes"].items():
-        for channel in node["input"].values():
+        for channel in node_input_channels(node):
             if channel not in input_output_connections:
                 input_output_connections[channel] = {
                 "output": set(),
                 "input": set(),
             }
             input_output_connections[channel]["input"].add(node_name)
-        for channel in node["output"].values():
+        for channel in node_output_channels(node):
             if channel not in input_output_connections:
                 input_output_connections[channel] = {
                 "output": set(),
@@ -386,7 +527,8 @@ def _sort_graph(input_outputs: dict, workflow: dict) -> list:
     Raises:
         Raises an error if a cycle is detected.
     """
-    graph = {}
+    # every node is part of the graph, also nodes without connections. Otherwise they would never run
+    graph = {node_name: set() for node_name in workflow["nodes"]}
     for channel in input_outputs.values():
         if len(channel["output"]) == 0:
             pass # never written, thus no need for sequential run

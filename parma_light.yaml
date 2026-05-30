@@ -1,0 +1,191 @@
+# Parma Light Configuration
+
+# data storage
+# ALL pathes below must be given as the HOST operating system requires it.
+# - Absolute pathes on Linux start with "/" and on Windows with "<drive>:" (e.g. "C:").
+# - Relative pathes are resolved relative to the current working directory, as usual.
+# "base_dir" is a directory which is used by the user to upload files with a relative path: the relative path the user supplies
+# in the "data" command is resolved relative to "base_dir". It only makes sense, if it exists and contains data.
+# if Parma Light is run in a container ("dood"), this is the ONLY possibility to upload files.
+# if Parma Light is run on the local machine ("local"), "base_dir" can be used in the same way,
+# but by using an absolute path all files on the host operating system can be accessed directly.
+store:
+  entity_store: "./datastore_parma/entity_store"
+  data_dir: "./datastore_parma/data_dir"
+  temp_dir: "./datastore_parma/temp_dir"
+  log_file: "./datastore_parma/parma_light.log"
+  base_dir: "./test/test_cmds"
+
+# Server configuration
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+# Tool configuration
+tools:
+  bash_on_linux: "/bin/bash"
+  bash_on_windows: "/bin/bash"
+  nix_on_linux: "./nix_tester.sh"
+
+  # for server select:
+  #   "waitress", WSGI server for windows & linux, fully Python
+  #   "development", local debugging, debugger with breakpoints behave strange
+  #   "development_debug", flask with debug=True, debugger with breakpoints work,
+  #                        but note: sequential execution, one flask request after the previous terminated
+  # you cannot use gunicorn (it uses worker processes and not worker threads). Currently We need sharing of data structures.
+  server: "waitress"
+
+# Logging configuration. The log-file is declared in the store-section
+logging:
+  level: "INFO"
+
+ui_config:
+  add_user:
+    - name: name
+      type: str
+      display: Name of the user
+      required: True
+    - name: password
+      type: str
+      display: Initial password
+      required: True
+    - name: admin
+      type: bool
+      display: Is the user admin?
+      required: True
+  remove_user:
+    - name: name
+      type: str
+      display: Name of the user
+      required: True
+    - name: admin
+      type: bool
+      display: Is the user admin?
+      tooltip: A reminder, that in most cases admin should not be removed :-)
+      required: True
+  node:
+    - name: name
+      type: str
+      display: Name
+      required: True
+    - name: type
+      type: [image, nix]
+      display: Type
+      tooltip: Type of the node, 'image' or 'nix'
+      required: True
+    - if: image
+      items:
+        - name: name
+          type: str
+          display: Name of the image
+          required: True
+        - name: version
+          type: str
+          display: Version of the image
+          required: True
+    - if: nix
+      items:
+        - name: qay
+          type: str
+          display: qay
+          required: True
+        - name: wsx
+          type: str
+          display: wsx
+          required: True
+    - name: input
+      type: list
+      display: Input-channel
+      items:
+        - name: name
+          type: str
+          display: Name
+          required: True
+        - name: type
+          type: [file, environment_var, str, int, float, bool, json]
+          display: Type
+          tooltip: "'file' and 'environment_var' are bound to data or env var values, the others are constants (bound to a value in the workflow)"
+          required: True
+        - if file:
+          items:
+            - name: format
+              type: str
+              display: Format of the file
+              tooltip: e.g. 'json', 'text'
+              required: True
+            - name: path_in_container
+              type: str
+              display: Path INSIDE of the container
+              tooltip: this path is used inside the container to access the file
+              required: True
+        - if environment_var:
+          items:
+            - name: format
+              type: str
+              display: Content of the env var
+              tooltip: Content of the environment variable (e.g. 'json')
+              required: True
+            - name: environment_var_in_container
+              type: str
+              display: Env var name INSIDE the container
+              tooltip: this name is used inside the container to access the environment variable
+              required: True
+        - if str:
+          items:
+            - name: command_line_parameter
+              type: str
+              display: Command line parameter
+              tooltip: "the value is passed as command line argument after this parameter (e.g. '--seed' gives '--seed 42')"
+              required: True
+        - if int:
+          items:
+            - name: command_line_parameter
+              type: str
+              display: Command line parameter
+              tooltip: "the value is passed as command line argument after this parameter (e.g. '--seed' gives '--seed 42')"
+              required: True
+        - if float:
+          items:
+            - name: command_line_parameter
+              type: str
+              display: Command line parameter
+              tooltip: "the value is passed as command line argument after this parameter (e.g. '--seed' gives '--seed 42')"
+              required: True
+        - if bool:
+          items:
+            - name: command_line_parameter
+              type: str
+              display: Command line parameter
+              tooltip: "the value is passed as command line argument after this parameter (e.g. '--seed' gives '--seed 42')"
+              required: True
+        - if json:
+          items:
+            - name: command_line_parameter
+              type: str
+              display: Command line parameter
+              tooltip: "the value is passed as command line argument after this parameter (e.g. '--seed' gives '--seed 42')"
+              required: True
+    - name: output
+      type: list
+      display: Output-channel
+      items:
+        - name: name
+          type: str
+          display: Name
+          required: True
+        - name: type
+          type: [file]
+          display: Type
+          required: True
+        - if file:
+          items:
+            - name: format
+              type: str
+              display: File type
+              tooltip: Type of file content (e.g. 'json')
+              required: True
+            - name: path_in_container
+              type: str
+              display: Path INSIDE the container
+              tooltip: this path is used inside the container to access the file
+              required: True

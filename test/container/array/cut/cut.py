@@ -1,11 +1,15 @@
-import os
+import argparse
 import json
 
 input_file = "/data/input_array.json"
 output_file = "/data/output_array.json"
 
-cut = os.environ.get("DIR", "left")
-count = int(os.environ.get("COUNT", "1"))
+parser = argparse.ArgumentParser(description="cut elements from the left or right end of a JSON array")
+parser.add_argument("--direction", default="left", help="'left' or 'right': the end to cut from")
+parser.add_argument("--count", type=int, default=1, help="number of elements to cut")
+args = parser.parse_args()
+cut = args.direction
+count = args.count
 
 try:
     with open(input_file, "r") as f:
@@ -24,7 +28,7 @@ elif cut == "left":
 elif cut == "right":
     array = array[:-count] if count > 0 else array
 else:
-    print("CUT must be 'left' or 'right'. Input copied to output")
+    print("--direction must be 'left' or 'right'. Input copied to output")
 
 try:
     with open(output_file, "w") as f:

@@ -2,6 +2,15 @@
 
 output_file="/data/generated_array.json"
 
+# Read the parameter --count
+COUNT=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --count) COUNT="$2"; shift 2 ;;
+    *)       echo "Unknown parameter '$1' ignored."; shift ;;
+  esac
+done
+
 # Validate COUNT is set and is a positive integer
 if ! [[ "$COUNT" =~ ^[0-9]+$ ]] || [ -z "$COUNT" ]; then
   COUNT=10  # Default value

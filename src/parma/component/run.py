@@ -1,5 +1,6 @@
 import os
 import copy
+import shlex
 import stat
 from python_on_whales import docker
 import subprocess
@@ -32,6 +33,8 @@ def get_run_hash_by_referer(referer: dict) -> str:
 
     Args:
         referer (dict): Must have 'name' and 'version' properties, or a 'hash' property, but NOT both.
+                A hash is for internal use only (e.g. by the frontend, hashes from lists); user inputs
+                (definitions, referer files) are validated against the schema "name_version" before.
 
     Returns:
         str: The hash of the run entry object.
@@ -66,6 +69,17 @@ def get_run_by_hash(hash: str) -> dict:
     )
     return run
 
+def get_all_runs() -> list:
+    """
+    Returns a list of all run entries known to the backend, each entry
+    including its hash under the key '_hash'.
+
+    Returns:
+        list[dict]: All run objects.
+    """
+    return [dict(run, _hash=hash) for hash, run in db._run.items()]
+
+
 def run_workflow(run_def: dict, channel_bindings: dict, logged_in_user: str) -> str:
     """
     Executes a workflow run based on the provided run definition and channel bindings (from a super workflow).
@@ -86,18 +100,9 @@ def run_workflow(run_def: dict, channel_bindings: dict, logged_in_user: str) -> 
     run["name"] = run_def["name"]
     run["_hash_of_workflow"] = hash_of_workflow
     _add_to_log(run, f"*** workflow {run['name']} started ***", log_message=True)
-    h.check_that_node_channels_are_bound(run["nodes"], n.get_node_by_hash, wf.get_workflow_by_hash)
-    
-    result = True
-    for node_name in run["_topological_order"]:
-        _add_to_log(run, f"node: {node_name}", log_message=True)
-        node = run["nodes"][node_name]
-        if "node" in node:  # a terminal node, a docker image
-            result = _run_terminal_node(node, run, channel_bindings, logged_in_user)
-        elif "workflow" in node:  # a workflow embedded in another workflow
-            result = _run_workflow_node(node_name, node, run, channel_bindings, logged_in_user)
-        if not result:
-            break
+    h.check_that_node_channels_are_bound(wf.used_nodes(run["nodes"]), n.get_node_by_hash, wf.get_workflow_by_hash)
+
+    result = _run_nodes_lazily(run, channel_bindings, logged_in_user)
     data_bindings = {}
     for channel, channel_bindung in channel_bindings.items():
         if channel_bindung["type"] == "file" or channel_bindung["type"] == "directory":
@@ -119,6 +124,101 @@ def run_workflow(run_def: dict, channel_bindings: dict, logged_in_user: str) -> 
         dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
 
 
+def _run_nodes_lazily(run: dict, channel_bindings: dict, logged_in_user: str) -> bool:
+    """
+    Executes the nodes of a workflow run demand driven ("lazy"), because of if nodes: of an if node only
+    the branch selected by the condition is executed, and nodes are only executed if their outputs are
+    needed.
+
+    The roots are the nodes that write a workflow output or whose outputs are read by no other node (they
+    are executed in topological order). Before a node is executed, the nodes writing the channels it
+    reads are executed (and the nodes that must run before it, see "sequence"). For an if node first the
+    writer of the condition is executed, then the condition is evaluated, then the writers of the inputs
+    of the selected branch, then the branch. Nodes never demanded are skipped (e.g. nodes whose outputs
+    are only read by the branch not selected). Without if nodes all nodes are executed.
+
+    Args:
+        run (dict): The run entry (a copy of the workflow).
+        channel_bindings (dict): Bindings for workflow channels. Outputs of executed nodes are added.
+        logged_in_user (str): The user performing the operation.
+
+    Returns:
+        bool: True if all nodes executed were successful, False otherwise (execution stops at the first failure).
+    """
+    nodes = run["nodes"]
+    order = run["_topological_order"]
+    position = {name: index for index, name in enumerate(order)}
+    writer_of = {channel: name for name, node in nodes.items() for channel in wf.node_output_channels(node)}
+    channels_read = {channel for node in nodes.values() for channel in wf.node_input_channels(node)}
+    must_run_before = {}  # node name -> nodes, that must run before (from "sequence")
+    for sequence in run.get("sequence") or []:
+        for after in sequence[1:]:
+            must_run_before.setdefault(after, []).append(sequence[0])
+    state = {}  # node name -> True (executed successfully) | False (failed or being evaluated)
+
+    def by_position(names) -> list:
+        return sorted(set(names), key=position.get)
+
+    def ensure_written(channels) -> bool:
+        """executes the nodes writing the channels (not yet executed). Inputs and binds have no writer"""
+        return all(evaluate(writer) for writer in by_position(writer_of[c] for c in channels if c in writer_of))
+
+    def evaluate(node_name: str) -> bool:
+        if node_name in state:
+            return state[node_name]
+        state[node_name] = False  # cycles are excluded when the workflow is stored
+        node = nodes[node_name]
+        ok = all(evaluate(before) for before in by_position(must_run_before.get(node_name, [])))
+        if ok and "if" in node:
+            ok = ensure_written([node["if"]])
+            if ok:
+                condition = _condition_value(node_name, node["if"], run, channel_bindings)
+                branch = "then" if condition else "else"
+                used = node[branch].get("node") or node[branch].get("workflow")
+                _add_to_log(run, f"if node \"{node_name}\": condition \"{node['if']}\" is {condition}, "
+                                 f"the {branch} branch {used['name']}:{used['version']} is executed", log_message=True)
+                ok = ensure_written(node[branch]["input"].values()) and \
+                     _run_used_node(f"{node_name}_{branch}", node[branch], run, channel_bindings, logged_in_user)
+        elif ok:
+            ok = ensure_written(node["input"].values()) and \
+                 _run_used_node(node_name, node, run, channel_bindings, logged_in_user)
+        state[node_name] = ok
+        return ok
+
+    roots = [name for name in order
+             if any(channel in run["output"] or channel not in channels_read for channel in wf.node_output_channels(nodes[name]))
+             or not wf.node_output_channels(nodes[name])]
+    result = all(evaluate(root) for root in roots)
+    if result:
+        for node_name in order:
+            if node_name not in state:
+                _add_to_log(run, f"node: {node_name} skipped, its outputs are not needed (lazy evaluation of if nodes)", log_message=True)
+    return result
+
+
+def _run_used_node(node_name: str, node: dict, run: dict, channel_bindings: dict, logged_in_user: str) -> bool:
+    """executes a node or sub workflow (a workflow node or the selected branch of an if node)"""
+    _add_to_log(run, f"node: {node_name}", log_message=True)
+    if "node" in node:  # a terminal node, a docker image
+        return _run_terminal_node(node, run, channel_bindings, logged_in_user)
+    return _run_workflow_node(node_name, node, run, channel_bindings, logged_in_user)  # a workflow embedded in another workflow
+
+
+def _condition_value(node_name: str, channel: str, run: dict, channel_bindings: dict) -> bool:
+    """the value of the condition channel of an if node: a bind (constant) or a binding passed to the workflow (e.g. an input)"""
+    if channel in channel_bindings and "value" in channel_bindings[channel]:
+        value = channel_bindings[channel]["value"]
+    elif channel in run["bind"] and "value" in run["bind"][channel]:
+        value = run["bind"][channel]["value"]
+    else:
+        details = f"if node \"{node_name}\": no value for the condition channel \"{channel}\""
+        dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
+    if not isinstance(value, bool):
+        details = f"if node \"{node_name}\": the condition channel \"{channel}\" has the non bool value {value!r}"
+        dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
+    return value
+
+
 def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings: dict, logged_in_user: str) -> bool:
     """
     Executes a terminal node (Docker image) in the workflow.
@@ -136,6 +236,7 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
     node_def = n.get_node_by_hash(node_hash)
     mounts = []
     envvars = []
+    cli_args = []
     output_channel_to_path = {}
 
     for channel_output_name, channel_rename in terminal_node["input"].items():
@@ -158,10 +259,9 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
                     else:
                         details = f"invalid node declaration \"{str(dynamic_binding)}\""
                         dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
-                elif dynamic_binding["type"] == "environment_var":
-                    envvar_name = node_channel["environment_var_in_container"]
-                    envvar_value = dynamic_binding["value"]
-                    envvars.append((envvar_name, envvar_value))
+                elif dynamic_binding["type"] == "environment_var" or dynamic_binding["type"] in n.CONSTANT_TYPES:
+                    value_as_str = h.value_to_str(dynamic_binding["value"], dynamic_binding["type"])
+                    _pass_value(channel_output_name, node_channel, value_as_str, envvars, cli_args)
                 else:
                     details = f"invalid input binding \"{str(dynamic_binding)}\""
                     dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
@@ -181,9 +281,10 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
                     details = f"invalid node declaration \"{str(dynamic_binding)}\""
                     dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
             elif dynamic_binding["type"] == "environment_var":
-                envvar_name = node_channel["environment_var_in_container"]
-                envvar_value = dynamic_binding["environment_var_value"]
-                envvars.append((envvar_name, envvar_value))
+                _pass_value(channel_output_name, node_channel, dynamic_binding["environment_var_value"], envvars, cli_args)
+            elif dynamic_binding["type"] in n.CONSTANT_TYPES:
+                value_as_str = h.value_to_str(dynamic_binding["value"], dynamic_binding["type"])
+                _pass_value(channel_output_name, node_channel, value_as_str, envvars, cli_args)
             else:
                 details = f"invalid bind decl \"{str(dynamic_binding)}\""
                 dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
@@ -253,9 +354,9 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
         output_channel_to_path[channel_rename] = {"path_outside": path_outside, "binding_defined_in_run": binding_defined_in_run, "node_channel": node_channel}
 
     if "_image_id" in node_def:
-        result = _run_docker_as_subprocess(run, node_def["_image_id"], mounts, envvars)
+        result = _run_docker_as_subprocess(run, node_def["_image_id"], mounts, envvars, cli_args)
     elif "_bash_id" in node_def:
-        result = _run_bash(run, node_def["_bash_id"], envvars)
+        result = _run_bash(run, node_def["_bash_id"], envvars, cli_args)
     elif "nix" in node_def:
         uri = node_def.get("nix",{}).get("uri", None)
         hash = node_def.get("nix",{}).get("hash", None)
@@ -286,6 +387,39 @@ def _run_terminal_node(terminal_node: dict, run: dict, dynamic_channel_bindings:
     _add_to_log(run, f"run finished. Success: {result}")
     return result
 
+def _pass_value(channel_name: str, node_channel: dict, value_as_str: str, envvars: list, cli_args: list) -> None:
+    """
+    Passes a value (environment var or constant) to a node, either as environment variable or as
+    command line parameter, as declared by the node channel.
+    """
+    if "environment_var_in_container" in node_channel:
+        envvars.append((node_channel["environment_var_in_container"], value_as_str))
+    elif "command_line_parameter" in node_channel:
+        cli_args.extend([node_channel["command_line_parameter"], value_as_str])
+    else:
+        details = f"channel \"{channel_name}\" declares neither environment var nor command line parameter"
+        dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
+
+
+def _binding_of_bind(channel: str, bind: dict) -> dict:
+    """
+    The dynamic binding passed to a sub workflow for a bind of the calling workflow. It has the form
+    expected for channels of the input section (see _run_terminal_node and _condition_value):
+    data -> "hash_of_data", environment variables and constants -> "value".
+    """
+    binding = {"type": bind["type"], "format": bind.get("format", "any")}
+    if bind["type"] == "file" or bind["type"] == "directory":
+        binding["hash_of_data"] = d.get_data_hash_by_referer(bind["data"])
+    elif bind["type"] == "environment_var":
+        binding["value"] = bind["environment_var_value"]
+    elif bind["type"] in n.CONSTANT_TYPES:
+        binding["value"] = bind["value"]
+    else:
+        details = f"invalid bind decl \"{channel}\": {str(bind)}"
+        dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
+    return binding
+
+
 def _run_workflow_node(workflow_name: str, workflow_node: dict, run: dict, super_bindings: dict, logged_in_user: str) -> bool:
     """
     Executes a sub-workflow node within a workflow.
@@ -308,7 +442,9 @@ def _run_workflow_node(workflow_name: str, workflow_node: dict, run: dict, super
                 sub_bindings[channel_name] = super_bindings[channel_rename]
             else:
                 details = f"channel {channel_rename} read, but not available"
-                dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)    
+                dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
+        elif channel_rename in run["bind"]:
+            sub_bindings[channel_name] = _binding_of_bind(channel_rename, run["bind"][channel_rename])
         else:
             dbc.raise_error({"msg": "SYSTEM_ERROR", "details": f"no binding for channel {channel_rename}"}, user_error=False)
 
@@ -343,7 +479,7 @@ def _run_docker_with_whales(run: dict, image_name: str, mounts: list) -> None:
     }
     docker.run(image_name, volumes=volumes)
 
-def _run_docker_as_subprocess(run: dict, image_name: str, mounts: list, envvars: list) -> bool:
+def _run_docker_as_subprocess(run: dict, image_name: str, mounts: list, envvars: list, cli_args: list = None) -> bool:
     """
     Runs a Docker image as subprocess.
 
@@ -352,6 +488,7 @@ def _run_docker_as_subprocess(run: dict, image_name: str, mounts: list, envvars:
         image_name (str): The name of the Docker image to run.
         mounts (list of tuples): A list of mounts, where each tuple contains (host_path, container_path).
         envvars (list of tuples): A list of bindings of environment var values to environment vars
+        cli_args (list of str): Command line arguments appended after the image name
 
     Returns:
         bool: True if the command was successful, False otherwise.
@@ -362,6 +499,7 @@ def _run_docker_as_subprocess(run: dict, image_name: str, mounts: list, envvars:
     for env_name, env_val in envvars:
         command.extend(["-e", f"{env_name}={env_val}"])
     command.append(image_name)
+    command.extend(cli_args or [])
 
     command_as_string = " ".join(command)
     _add_to_log(
@@ -388,12 +526,13 @@ def _run_docker_as_subprocess(run: dict, image_name: str, mounts: list, envvars:
         _add_to_log(run, details)
         return False
 
-def _run_bash(run, bash_id, envvars):
+def _run_bash(run, bash_id, envvars, cli_args=None):
     bash_commands = []
     for env_name, env_val in envvars:
         bash_commands.append(f"{env_name}=\"{env_val}\"")
     path_bash_script = d.get_path_by_hash(bash_id).replace('\\','/')
     bash_commands.append(path_bash_script)
+    bash_commands.extend(shlex.quote(arg) for arg in (cli_args or []))
     bash_command_as_string = " ".join(bash_commands)
     _add_to_log(
         run, f"Running bash command: {bash_command_as_string}"

@@ -1,39 +1,31 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-
-    
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "src/parma/main.py",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "HOST_OPERATING_SYSTEM": "windows"
+      }
+    },
+    {
+      "name": "Python: Remote Attach",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "pathMappings": [
         {
-            "name": "Python Debugger: backend",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "src/parma/backend.py",
-            "console": "integratedTerminal",
-            "env": {
-                "HOST_OPERATING_SYSTEM": "windows"
-            }
-        },
-        {
-            "name": "Python Debugger: frontend",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "src/parma/frontend_cli.py",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Python: Remote Attach",
-            "type": "debugpy",
-            "request": "attach",
-            "connect": {
-                "host": "localhost",
-                "port": 5678
-            },
-            "pathMappings": [
-                {
-                    "localRoot": "${workspaceFolder}",
-                    "remoteRoot": "/app"  // Container path where code runs
-                }
-            ]
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/app" // Container path where code runs
         }
-    ]
+      ]
+    }
+  ]
 }

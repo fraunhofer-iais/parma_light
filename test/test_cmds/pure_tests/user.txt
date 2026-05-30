@@ -1,0 +1,12 @@
+user {
+    "name":"nd_predict","password":"nd_predict","admin":true
+};
+user {
+    "name":"rbudde","password":"change_it","admin":true
+};
+user {
+    "name":"ibudde","password":"change_it","admin":false
+};
+user {
+    "name":"lina","password":"change_it","admin":false
+};

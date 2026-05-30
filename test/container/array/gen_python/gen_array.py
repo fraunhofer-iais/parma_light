@@ -1,19 +1,16 @@
-import os
-import sys
+import argparse
 import json
 
 output_file = "/data/generated_array.json"
 
-# Read and validate COUNT environment variable
-count_env = os.getenv("COUNT")
-try:
-    count = int(count_env)
-    if count < 1:
-        raise ValueError
-except (TypeError, ValueError):
+# Read and validate the parameter --count
+parser = argparse.ArgumentParser(description="generate the JSON array 1...count")
+parser.add_argument("--count", type=int, default=10, help="number of elements (default 10)")
+count = parser.parse_args().count
+if count < 1:
     count = 10  # Default value
 
-# Generate JSON array from 1 to COUNT
+# Generate JSON array from 1 to count
 numbers = list(range(1, count + 1))
 
 # Write to output file

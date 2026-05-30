@@ -1,0 +1,4 @@
+run {
+    "name": "run_process_string_bash",
+    "workflow": { "name": "wf_process_string_bash", "version": "latest" }
+};

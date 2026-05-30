@@ -130,7 +130,7 @@ def view_table(param: Dict[str, Any]) -> Dict[str, Any]:
     """
     table_name = param.get("name", "run")
     if table_name == "user":
-        keys_to_report = ["name", "display_name", "su"]
+        keys_to_report = ["name", "admin"]
         dict_to_report = db._user
     elif table_name == "data":
         keys_to_report = [("_HASH_", db.shrink_hash), "name", "_version", "type", "storage", "hash", "user_path", ("_hash_of_content", db.shrink_hash)]

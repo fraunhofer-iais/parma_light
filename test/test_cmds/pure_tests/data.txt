@@ -1,40 +1,40 @@
 data {
-    "name": "run_txt",
+    "name": "data_example_meta",
     "type": "file",
     "storage": "platform",
     "hash": "true",
     "format": "any", 
-    "user_path": "sklearn/run.txt"
+    "user_path": "pure_tests/data_example_meta.txt"
 };
 data {
-    "name": "run_txt",
+    "name": "data_example_meta",
     "type": "file",
     "storage": "extern",
     "hash": "true",
     "format": "any", 
-    "user_path": "sklearn/run.txt"
+    "user_path": "pure_tests/data_example_meta.txt"
 };
 data {
-    "name": "run_txt",
+    "name": "data_example_meta",
     "type": "file",
     "storage": "platform",
     "hash": "false",
     "format": "any", 
-    "user_path": "sklearn/run.txt"
+    "user_path": "pure_tests/data_example_meta.txt"
 };
 data {
-    "name": "run_txt",
+    "name": "data_example_meta",
     "type": "file",
     "storage": "extern",
     "hash": "false",
     "format": "any", 
-    "user_path": "sklearn/run.txt"
+    "user_path": "pure_tests/data_example_meta.txt"
 };
 data {
-    "name": "sklearn_dir",
+    "name": "pure_test_dir",
     "type": "directory",
     "storage": "extern",
     "hash": "false",
     "format": "any", 
-    "user_path": "sklearn"
+    "user_path": "pure_tests"
 };

@@ -5,9 +5,14 @@
       "type": "string",
       "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
     },
+    "data_name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+      "description": "Name of a data entry: like alphanumeric_name, but may start with '_' too."
+    },
     "version_pattern": {
       "type": "string",
-      "pattern": "^latest|[0-9]+$"
+      "pattern": "^(latest|[0-9]+)$"
     },
     "hash_pattern": {
       "type": "string",
@@ -18,44 +23,59 @@
       "pattern": "^(?:[a-zA-Z]:\\\\|\\\\\\\\|/)?([^<>:\"|?*]+[\\\\/])*[^<>:\"|?*]+$",
       "description": "A valid file path that supports both Linux and Windows formats."
     },
-    "name_version__or__hash": {
+    "name_version": {
       "type": "object",
+      "description": "Reference to a stored entity (data, node, workflow, run) by name and version. Hashes are not accepted.",
       "properties": {
         "name": {
-          "$ref": "#/$defs/alphanumeric_name"
+          "$ref": "#/$defs/data_name"
         },
         "version": {
           "$ref": "#/$defs/version_pattern"
-        },
-        "hash": {
-          "type": "string",
-          "pattern": "^[a-fA-F0-9]{40}$",
-          "description": "A valid SHA-1 hash."
         }
       },
-      "oneOf": [
-        {
-          "required": [
-            "name",
-            "version"
-          ],
-          "not": {
-            "required": [
-              "hash"
-            ]
-          }
+      "required": [
+        "name",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "wf_branch_def": {
+      "type": "object",
+      "description": "A branch (then or else) of an if node of a workflow: a node or a sub workflow with its channel renamings.",
+      "properties": {
+        "node": {
+          "$ref": "#/$defs/name_version"
         },
-        {
-          "required": [
-            "hash"
-          ],
-          "not": {
-            "required": [
-              "name",
-              "version"
-            ]
-          }
+        "workflow": {
+          "$ref": "#/$defs/name_version"
+        },
+        "input": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "$ref": "#/$defs/alphanumeric_name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "$ref": "#/$defs/alphanumeric_name"
+            }
+          },
+          "additionalProperties": false
         }
+      },
+      "required": [
+        "input",
+        "output"
+      ],
+      "oneOf": [
+        { "required": ["node"], "not": { "required": ["workflow"] } },
+        { "required": ["workflow"], "not": { "required": ["node"] } }
       ],
       "additionalProperties": false
     },
@@ -72,35 +92,75 @@
         }
       },
       "oneOf": [
-        { "required": ["uri"] },
-        { "required": ["hash"] }
+        {
+          "required": [
+            "uri"
+          ]
+        },
+        {
+          "required": [
+            "hash"
+          ]
+        }
       ],
       "additionalProperties": false
     },
     "type_def": {
       "type": "string",
-      "enum": ["file", "directory", "environment_var"]
+      "enum": [
+        "file",
+        "directory",
+        "environment_var",
+        "str",
+        "int",
+        "float",
+        "bool",
+        "json"
+      ]
     },
     "bool_def": {
       "type": "string",
-      "enum": ["true", "false"]
+      "enum": [
+        "true",
+        "false"
+      ]
     },
     "storage_def": {
       "type": "string",
-      "enum": ["platform", "extern"]
+      "enum": [
+        "platform",
+        "extern"
+      ]
     },
     "format_def": {
       "type": "string",
-      "enum": ["json", "str", "any"]
+      "enum": [
+        "json",
+        "str",
+        "any"
+      ]
     },
     "full_channel_def": {
       "type": "object",
       "properties": {
-        "type": { "$ref": "#/$defs/type_def" },
-        "format": { "$ref": "#/$defs/format_def" },
-        "storage": { "$ref": "#/$defs/storage_def" },
-        "hash": { "$ref": "#/$defs/bool_def" },
-        "user_path": { "$ref": "#/$defs/path_pattern" }
+        "type": {
+          "$ref": "#/$defs/type_def"
+        },
+        "format": {
+          "$ref": "#/$defs/format_def"
+        },
+        "storage": {
+          "$ref": "#/$defs/storage_def"
+        },
+        "hash": {
+          "$ref": "#/$defs/bool_def"
+        },
+        "user_path": {
+          "$ref": "#/$defs/path_pattern"
+        },
+        "litegraph": {
+          "$ref": "#/$defs/litegraph_def"
+        }
       },
       "required": [
         "type",
@@ -114,17 +174,18 @@
         "name": {
           "$ref": "#/$defs/alphanumeric_name"
         },
-        "display_name": {
-          "type": "string"
-        },
-        "su": {
+        "admin": {
           "type": "boolean"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [
         "name",
-        "display_name",
-        "su"
+        "admin",
+        "password"
       ],
       "additionalProperties": false
     },
@@ -132,7 +193,7 @@
       "type": "object",
       "properties": {
         "name": {
-          "$ref": "#/$defs/alphanumeric_name"
+          "$ref": "#/$defs/data_name"
         },
         "type": {
           "$ref": "#/$defs/type_def"
@@ -167,10 +228,10 @@
           "$ref": "#/$defs/alphanumeric_name"
         },
         "image": {
-          "$ref": "#/$defs/name_version__or__hash"
+          "$ref": "#/$defs/name_version"
         },
         "bash": {
-          "$ref": "#/$defs/name_version__or__hash"
+          "$ref": "#/$defs/name_version"
         },
         "nix": {
           "$ref": "#/$defs/nix_uri_or_nix_hash"
@@ -192,6 +253,10 @@
                 },
                 "environment_var_in_container": {
                   "$ref": "#/$defs/alphanumeric_name"
+                },
+                "command_line_parameter": {
+                  "type": "string",
+                  "minLength": 1
                 }
               },
               "required": [
@@ -199,8 +264,21 @@
                 "format"
               ],
               "oneOf": [
-                { "required": ["path_in_container"], "not": { "required": ["environment_var_in_container"] } },
-                { "required": ["environment_var_in_container"], "not": { "required": ["path_in_container"] } }
+                {
+                  "required": [
+                    "path_in_container"
+                  ]
+                },
+                {
+                  "required": [
+                    "environment_var_in_container"
+                  ]
+                },
+                {
+                  "required": [
+                    "command_line_parameter"
+                  ]
+                }
               ],
               "additionalProperties": false
             }
@@ -211,31 +289,48 @@
           "type": "object",
           "patternProperties": {
             "^[a-zA-Z][a-zA-Z0-9_]*$": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "$ref": "#/$defs/type_def"
-                  },
-                  "format": {
-                    "$ref": "#/$defs/format_def"
-                  },
-                  "path_in_container": {
-                    "$ref": "#/$defs/path_pattern"
-                  },
-                  "environment_var_in_container": {
-                    "$ref": "#/$defs/alphanumeric_name"
-                  }
+              "type": "object",
+              "properties": {
+                "type": {
+                  "$ref": "#/$defs/type_def"
                 },
-                "required": [
-                  "type",
-                  "format"
-                ],
-                "oneOf": [
-                  { "required": ["path_in_container"], "not": { "required": ["environment_var_in_container"] } },
-                  { "required": ["environment_var_in_container"], "not": { "required": ["path_in_container"] } }
-                ],
-                "additionalProperties": false
-              }
+                "format": {
+                  "$ref": "#/$defs/format_def"
+                },
+                "path_in_container": {
+                  "$ref": "#/$defs/path_pattern"
+                },
+                "environment_var_in_container": {
+                  "$ref": "#/$defs/alphanumeric_name"
+                },
+                "command_line_parameter": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "type",
+                "format"
+              ],
+              "oneOf": [
+                {
+                  "required": [
+                    "path_in_container"
+                  ]
+                },
+                {
+                  "required": [
+                    "environment_var_in_container"
+                  ]
+                },
+                {
+                  "required": [
+                    "command_line_parameter"
+                  ]
+                }
+              ],
+              "additionalProperties": false
+            }
           },
           "additionalProperties": false
         }
@@ -246,9 +341,21 @@
         "output"
       ],
       "oneOf": [
-        { "required": ["image"] },
-        { "required": ["bash"] },
-        { "required": ["nix"] }
+        {
+          "required": [
+            "image"
+          ]
+        },
+        {
+          "required": [
+            "bash"
+          ]
+        },
+        {
+          "required": [
+            "nix"
+          ]
+        }
       ],
       "additionalProperties": false
     },
@@ -259,62 +366,98 @@
           "$ref": "#/$defs/alphanumeric_name"
         },
         "input": {
-          "^[a-zA-Z][a-zA-Z0-9_]*$": {
-            "type": "object",
-            "properties": {
-              "type": { "$ref": "#/$defs/type_def" },
-              "format": { "$ref": "#/$defs/format_def"  }
-            },
-            "required": [
-              "type",
-              "format"
-            ],
-            "additionalProperties": false
-          }
-        },
-        "output": {
-          "^[a-zA-Z][a-zA-Z0-9_]*$": {
-            "$ref": "#/$defs/full_channel_def"
-          }
-        },
-        "bind": {
-          "^[a-zA-Z][a-zA-Z0-9_]*$": {
-            "type": "object",
-            "patternProperties": {
-              "^[a-zA-Z][a-zA-Z0-9_]*$": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "$ref": "#/$defs/type_def"
-                  },
-                  "format": {
-                    "$ref": "#/$defs/format_def"
-                  },
-                  "data": {
-                    "$ref": "#/$defs/name_version__or__hash"
-                  },
-                  "environment_var_value": {
-                    "type": "string"
-                  }
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "$ref": "#/$defs/type_def"
                 },
-                "required": [
-                  "type",
-                  "format"
-                ],
-                "oneOf": [
-                  { "required": ["data"], "not": { "required": ["environment_var_value"] } },
-                  { "required": ["environment_var_value"], "not": { "required": ["data"] } }
-                ],
-                "additionalProperties": false
+                "format": {
+                  "$ref": "#/$defs/format_def"
+                },
+                "litegraph": {
+                  "$ref": "#/$defs/litegraph_def"
+                }
               },
+              "required": [
+                "type",
+                "format"
+              ],
               "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "$ref": "#/$defs/full_channel_def"
+            }
+          },
+          "additionalProperties": false
+        },
+        "bind": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "$ref": "#/$defs/type_def"
+                },
+                "format": {
+                  "$ref": "#/$defs/format_def"
+                },
+                "data": {
+                  "$ref": "#/$defs/name_version"
+                },
+                "environment_var_value": {
+                  "type": "string"
+                },
+                "value": {
+                  "description": "the constant bound to a channel of type str, int, float, bool or json"
+                },
+                "litegraph": {
+                  "$ref": "#/$defs/litegraph_def"
+                }
+              },
+              "required": [
+                "type",
+                "format"
+              ],
+              "oneOf": [
+                {
+                  "required": [
+                    "data"
+                  ]
+                },
+                {
+                  "required": [
+                    "environment_var_value"
+                  ]
+                },
+                {
+                  "required": [
+                    "value"
+                  ]
+                }
+              ],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
         },
         "connect": {
-          "^[a-zA-Z][a-zA-Z0-9_]*$": {
-            "$ref": "#/$defs/full_channel_def"
-          }
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z][a-zA-Z0-9_]*$": {
+              "$ref": "#/$defs/full_channel_def"
+            }
+          },
+          "additionalProperties": false
         },
         "nodes": {
           "type": "object",
@@ -323,29 +466,55 @@
               "type": "object",
               "properties": {
                 "node": {
-                  "$ref": "#/$defs/name_version__or__hash"
+                  "$ref": "#/$defs/name_version"
                 },
                 "workflow": {
-                  "$ref": "#/$defs/name_version__or__hash"
+                  "$ref": "#/$defs/name_version"
                 },
                 "input": {
-                  "^[a-zA-Z][a-zA-Z0-9_]*$": {
-                    "$ref": "#/$defs/alphanumeric_name"
-                  }
+                  "type": "object",
+                  "patternProperties": {
+                    "^[a-zA-Z][a-zA-Z0-9_]*$": {
+                      "$ref": "#/$defs/alphanumeric_name"
+                    }
+                  },
+                  "additionalProperties": false
                 },
                 "output": {
-                  "^[a-zA-Z][a-zA-Z0-9_]*$": {
-                    "$ref": "#/$defs/alphanumeric_name"
-                  }
+                  "type": "object",
+                  "patternProperties": {
+                    "^[a-zA-Z][a-zA-Z0-9_]*$": {
+                      "$ref": "#/$defs/alphanumeric_name"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "if": {
+                  "$ref": "#/$defs/alphanumeric_name"
+                },
+                "then": {
+                  "$ref": "#/$defs/wf_branch_def"
+                },
+                "else": {
+                  "$ref": "#/$defs/wf_branch_def"
+                },
+                "litegraph": {
+                  "$ref": "#/$defs/litegraph_def"
                 }
               },
-              "required": [
-                "input",
-                "output"
-              ],
               "oneOf": [
-                { "required": [ "node" ], "not": { "required": [ "workflow" ] } },
-                { "required": [ "workflow" ], "not": { "required": [ "node" ] } }
+                {
+                  "required": ["node", "input", "output"],
+                  "not": { "anyOf": [ {"required": ["workflow"]}, {"required": ["if"]}, {"required": ["then"]}, {"required": ["else"]} ] }
+                },
+                {
+                  "required": ["workflow", "input", "output"],
+                  "not": { "anyOf": [ {"required": ["node"]}, {"required": ["if"]}, {"required": ["then"]}, {"required": ["else"]} ] }
+                },
+                {
+                  "required": ["if", "then", "else"],
+                  "not": { "anyOf": [ {"required": ["node"]}, {"required": ["workflow"]}, {"required": ["input"]}, {"required": ["output"]} ] }
+                }
               ],
               "additionalProperties": false
             }
@@ -370,13 +539,13 @@
           "$ref": "#/$defs/alphanumeric_name"
         },
         "workflow": {
-          "$ref": "#/$defs/name_version__or__hash"
+          "$ref": "#/$defs/name_version"
         },
         "replace_by_node": {
           "type": "object",
           "patternProperties": {
             "^[a-zA-Z][a-zA-Z0-9_]*$": {
-              "$ref": "#/$defs/name_version__or__hash"
+              "$ref": "#/$defs/name_version"
             }
           },
           "additionalProperties": false
@@ -385,7 +554,7 @@
           "type": "object",
           "patternProperties": {
             "^[a-zA-Z][a-zA-Z0-9_]*$": {
-              "$ref": "#/$defs/name_version__or__hash"
+              "$ref": "#/$defs/name_version"
             }
           },
           "additionalProperties": false
@@ -403,24 +572,43 @@
                   "$ref": "#/$defs/format_def"
                 },
                 "data": {
-                  "$ref": "#/$defs/name_version__or__hash"
+                  "$ref": "#/$defs/name_version"
                 },
                 "environment_var_value": {
                   "type": "string"
+                },
+                "value": {
+                  "description": "the constant bound to a channel of type str, int, float, bool or json"
+                },
+                "litegraph": {
+                  "$ref": "#/$defs/litegraph_def"
                 }
               },
-            "required": [
-              "type",
-              "format"
-            ],
-            "oneOf": [
-              { "required": ["data"], "not": { "required": ["environment_var_value"] } },
-              { "required": ["environment_var_value"], "not": { "required": ["data"] } }
-            ],
-            "additionalProperties": false
+              "required": [
+                "type",
+                "format"
+              ],
+              "oneOf": [
+                {
+                  "required": [
+                    "data"
+                  ]
+                },
+                {
+                  "required": [
+                    "environment_var_value"
+                  ]
+                },
+                {
+                  "required": [
+                    "value"
+                  ]
+                }
+              ],
+              "additionalProperties": false
+            }
           },
           "additionalProperties": false
-          }
         }
       },
       "required": [
@@ -436,7 +624,7 @@
           "$ref": "#/$defs/alphanumeric_name"
         },
         "workflow": {
-          "$ref": "#/$defs/name_version__or__hash"
+          "$ref": "#/$defs/name_version"
         }
       },
       "required": [
@@ -444,6 +632,32 @@
         "workflow"
       ],
       "additionalProperties": false
+    },
+    "position_def": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "position [x, y] of a node on the canvas of the workflow editor"
+    },
+    "litegraph_def": {
+      "type": "object",
+      "properties": {
+        "pos": {
+          "$ref": "#/$defs/position_def"
+        },
+        "state": {
+          "enum": [
+            "expanded",
+            "collapsed"
+          ],
+          "description": "state of the node on the canvas. Default: expanded"
+        }
+      },
+      "additionalProperties": false,
+      "description": "optional layout data of the workflow editor (LiteGraph)"
     }
   }
 }

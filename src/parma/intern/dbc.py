@@ -50,3 +50,22 @@ def assert_true(condition: bool, error_description: dict, user_error: bool = Tru
     if not condition:
         raise_error(error_description, user_error)
 
+
+def assert_true_system(condition: bool, error_description: str) -> None:
+    """
+    Assert a condition. Raise a system error if the condition is False.
+
+    Args:
+        condition (bool): The condition to assert.
+        error_description (str): details about the error.
+
+    Raises:
+        ParmaException: If the condition is False.
+    """
+    if not condition:
+        fail_system(error_description)
+
+
+def fail_system(error_text: str) -> None:
+    error_dict = {"msg": "SYSTEM_ERROR", "details": error_text}
+    raise_error(error_dict, user_error=False)

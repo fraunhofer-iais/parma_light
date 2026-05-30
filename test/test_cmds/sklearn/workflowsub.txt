@@ -1,14 +1,3 @@
-node {
-    "name": "nd_train_and_predict",
-    "image": { "name": "sklearn_train_and_predict", "version": "1"},
-    "input": {
-    },
-    "output": {
-        "pred_labels": { "type": "file", "format": "json", "path_in_container": "/data/pred_labels.json" },
-        "true_labels": { "type": "file", "format": "json", "path_in_container": "/data/true_labels.json" }
-    }
-};
-
 workflow {
     "name": "wf_train_and_predict",
     "input": {
@@ -18,7 +7,7 @@ workflow {
         "true_labels":       { "type": "file", "format": "json" }
     },
     "bind": {
-        "seed_setting":      { "type": "environment_var", "format": "str", "environment_var_value": "42" }
+        "seed_setting":      { "type": "int", "value": 42 }
     },
     "connect": {
         "model_file":        { "type": "file", "format": "any" },
@@ -57,14 +46,14 @@ workflow {
         "metric_result":  { "type": "file", "format": "json" }
     },
     "bind": {
-        "accuracy_cmd":     { "type": "environment_var", "format": "str", "environment_var_value": "accuracy" }
+        "accuracy_cmd":     { "type": "str", "value": "accuracy" }
     },
     "connect": {
         "pred_labels_file":  { "type": "file", "format": "json" },
         "true_labels_file":  { "type": "file", "format": "json" }
     },
     "nodes": {
-        "predict": {
+        "train_and_predict": {
             "workflow": {"name": "wf_train_and_predict", "version": "latest"},
             "input": {
             },
@@ -91,7 +80,7 @@ refine {
     "name": "wf_metrics_2",
     "workflow": { "name": "wf_metrics_1", "version": "latest" },
     "replace_bind": {
-        "accuracy_cmd": { "type": "environment_var", "format": "str", "environment_var_value": "accuracy,precision" }
+        "accuracy_cmd": { "type": "str", "value": "accuracy,precision" }
     }
 };
 
@@ -99,7 +88,7 @@ refine {
     "name": "wf_metrics_4",
     "workflow": { "name": "wf_metrics_1", "version": "latest" },
     "replace_bind": {
-        "accuracy_cmd": { "type": "environment_var", "format": "str", "environment_var_value": "accuracy,precision,recall,f1" }
+        "accuracy_cmd": { "type": "str", "value": "accuracy,precision,recall,f1" }
     }
 };
 
@@ -107,44 +96,14 @@ refine {
     "name": "wf_replace_wf_by_node",
     "workflow": { "name": "wf_metrics_1", "version": "latest" },
     "replace_by_node": {
-        "predict": { "name": "nd_train_and_predict", "version": "latest"}
+        "train_and_predict": { "name": "nd_train_and_predict", "version": "latest"}
     }
 };
 
 refine {
     "name": "wf_replace_node_by_wf",
-    "workflow": { "name": "wf_metrics_1", "version": "latest" },
+    "workflow": { "name": "wf_replace_wf_by_node", "version": "latest" },
     "replace_by_workflow": {
-        "predict": { "name": "wf_train_and_predict", "version": "latest"}
+        "train_and_predict": { "name": "wf_train_and_predict", "version": "latest"}
     }
-};
-
-run {
-    "name": "run_predict_standalone",
-    "workflow": { "name": "wf_train_and_predict", "version": "latest" }
-};
-
-run {
-    "name": "run_metrics_1",
-    "workflow": { "name": "wf_metrics_1", "version": "latest" }
-};
-
-run {
-    "name": "run_metrics_2",
-    "workflow": { "name": "wf_metrics_2", "version": "latest" }
-};
-
-run {
-    "name": "run_metrics_4",
-    "workflow": { "name": "wf_metrics_4", "version": "latest" }
-};
-
-run {
-    "name": "run_replace_wf_by_node",
-    "workflow": { "name": "wf_replace_wf_by_node", "version": "latest" }
-};
-
-run {
-    "name": "run_replace_node_by_wf",
-    "workflow": { "name": "wf_replace_node_by_wf", "version": "latest" }
 };

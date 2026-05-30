@@ -5,8 +5,9 @@ import json
 import datetime
 from pathlib import Path
 import re
+import secrets
 import jsonschema
-import toml
+import yaml
 from python_on_whales import docker
 from python_on_whales import DockerException
 import os
@@ -15,6 +16,7 @@ import stat
 import logging
 from intern import msg
 import intern.dbc as dbc
+from werkzeug.security import generate_password_hash, check_password_hash
 
 def _running_in_docker() -> bool:
     """
@@ -43,9 +45,9 @@ RUNNING_IN_CONTAINER = _running_in_docker()
 logger = logging.getLogger(__name__)
 
 
-def load_toml_config(config_file: Path) -> dict:
+def load_yaml_config(config_file: Path) -> dict:
     """
-    Load configuration from TOML file.
+    Load configuration from YAML file.
 
     Args:
         config_file (Path): Path to the configuration file
@@ -54,9 +56,10 @@ def load_toml_config(config_file: Path) -> dict:
         dict: Configuration dictionary
     """
     try:
-        return toml.load(config_file)
+        with open(config_file, 'r') as f:
+            return yaml.safe_load(f)
     except Exception as e:
-        print(f"Exit 12. Error loading toml-config file: {e}")
+        print(f"Exit 12. Error loading yaml-config file: {e}")
         exit(12)
 
 
@@ -130,6 +133,42 @@ def make_git_like_hash_of_json(json_object: dict) -> str:
     """
     json_string = json.dumps(json_object, indent=4, sort_keys=True)
     return make_git_like_hash_of_bytes(json_string.encode("utf-8"))
+
+
+PASSWORD_HASH_METHOD = "scrypt"
+
+
+def make_password_hash(password: str) -> str:
+    """
+    Computes a salted, deliberately slow hash of a password (scrypt, by werkzeug).
+
+    Args:
+        password (str): The plain-text password.
+
+    Returns:
+        str: A self-contained string "scrypt:<parameters>$<salt>$<hash>".
+    """
+    return generate_password_hash(password, method=PASSWORD_HASH_METHOD)
+
+
+def verify_password_hash(password: str, stored: str) -> bool:
+    """
+    Verifies a password against a hash made by :func:`make_password_hash`.
+
+    Args:
+        password (str): The plain-text password to verify.
+        stored (str): The stored hash.
+
+    Returns:
+        bool: ``True`` if the password matches, ``False`` otherwise
+              (including when *stored* is ``None`` or malformed).
+    """
+    if not stored:
+        return False
+    try:
+        return check_password_hash(stored, password)
+    except Exception:
+        return False
 
 
 def _get_sha256_image_digest(repo_digest: str, image_name: str) -> str:
@@ -214,6 +253,7 @@ def check_that_node_channels_are_bound(
                     msg.log(logger.error, {"msg": "CHANNEL_NOT_BOUND", "name": node_channel_name, "hash": node_hash, "direction": "output", "what": "node"})
         elif "_hash_of_workflow_def" in node:
             node_used = get_workflow_by_hash(node["_hash_of_workflow_def"])
+            node_hash = node["_hash_of_workflow_def"]
             for node_channel_name in node_used["input"]:
                 if node_channel_name not in node["input"]:
                     msg.log(logger.error, {"msg": "CHANNEL_NOT_BOUND", "name": node_channel_name, "hash": node_hash, "direction": "input", "what": "sub workflow"})
@@ -324,6 +364,117 @@ def split_on_first_whitespace(input_string: str) -> tuple[str, str]:
         return (match.group(1), match.group(2))
     else:
         dbc.raise_error({"msg": "INVALID_COMMAND"})
+
+
+def parse_upload_content(content: str, keywords) -> list:
+    """
+    Parses the text of an uploaded file into a list of definitions. Accepted are
+    - plain JSON: an object or a list of objects. They get the first keyword, or
+    - the command file format: one or more blocks "<keyword> { ... }", each optionally terminated by ";".
+      Every block may use any of the keywords (e.g. "workflow" and "refine" in one file).
+
+    Args:
+        content (str): The uploaded text.
+        keywords (str or list[str]): The accepted keyword(s), e.g. "node" or ["workflow", "refine"].
+
+    Returns:
+        list[tuple[str, object]]: (keyword, definition) for every definition, in the order of the text.
+
+    Raises:
+        Raises an error if the text is neither valid JSON nor in the command file format.
+    """
+    if isinstance(keywords, str):
+        keywords = [keywords]
+    decoder = json.JSONDecoder()
+    text = (content or "").strip()
+    try:
+        if not text or text[0] in "{[":
+            parsed = json.loads(text)
+            items = parsed if isinstance(parsed, list) else [parsed]
+            return [(keywords[0], item) for item in items]
+        definitions = []
+        pos = 0
+        while pos < len(text):
+            keyword = _keyword_at(text, pos, keywords)
+            if keyword is None:
+                expected = " or ".join(f"\"{k}\"" for k in keywords)
+                dbc.raise_error({"msg": "INVALID_JSON_SYNTAX", "json_msg": f"{expected} expected",
+                                 "pos": pos, "context": text[max(0, pos - 20):pos + 20]})
+            pos = _skip_whitespace(text, pos + len(keyword))
+            obj, pos = decoder.raw_decode(text, pos)
+            definitions.append((keyword, obj))
+            pos = _skip_whitespace(text, pos)
+            if pos < len(text) and text[pos] == ";":
+                pos = _skip_whitespace(text, pos + 1)
+        return definitions
+    except json.JSONDecodeError as e:
+        dbc.raise_error({"msg": "INVALID_JSON_SYNTAX", "json_msg": e.msg,
+                         "pos": e.pos, "context": e.doc[max(0, e.pos - 20):e.pos + 20]})
+
+
+def _keyword_at(text: str, pos: int, keywords: list):
+    """returns the keyword starting at pos (followed by whitespace or "{"), or None"""
+    for keyword in sorted(keywords, key=len, reverse=True):
+        end = pos + len(keyword)
+        if text.startswith(keyword, pos) and end < len(text) and (text[end].isspace() or text[end] == "{"):
+            return keyword
+    return None
+
+
+def _skip_whitespace(text: str, pos: int) -> int:
+    while pos < len(text) and text[pos].isspace():
+        pos += 1
+    return pos
+
+
+def strip_internal_fields(obj):
+    """
+    Returns a copy of a stored entry without the fields created by the backend (keys starting with "_"),
+    on all levels. User defined keys (names of channels, nodes, ...) never start with "_".
+    """
+    if isinstance(obj, dict):
+        return {key: strip_internal_fields(value) for key, value in obj.items() if not str(key).startswith("_")}
+    if isinstance(obj, list):
+        return [strip_internal_fields(value) for value in obj]
+    return obj
+
+
+def export_definition(keyword: str, entry: dict) -> str:
+    """
+    Converts a stored entry (node, workflow, ...) into the text format of uploads ('<keyword> { ... };'),
+    without internal fields. Uploading this text creates the entry again (as a new version).
+    """
+    return f"{keyword} {json.dumps(strip_internal_fields(entry), indent=4)};\n"
+
+
+def value_matches_type(value, channel_type: str) -> bool:
+    """
+    Checks whether a JSON value matches a constant channel type (str, int, float, bool, json).
+    json accepts every JSON value. bool is not accepted as int or float.
+    """
+    if channel_type == "str":
+        return isinstance(value, str)
+    if channel_type == "int":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if channel_type == "float":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if channel_type == "bool":
+        return isinstance(value, bool)
+    return channel_type == "json"
+
+
+def value_to_str(value, channel_type: str) -> str:
+    """
+    Converts a constant to the string passed to a node (as environment variable or command line parameter).
+    bool becomes "true"/"false", json is serialized (a string is passed unchanged), everything else uses str().
+    """
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        return value
+    if channel_type == "json" or isinstance(value, (dict, list)) or value is None:
+        return json.dumps(value)
+    return str(value)
 
 
 def all_keys_different(list_array: list[list]) -> None:

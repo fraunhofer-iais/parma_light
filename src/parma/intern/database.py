@@ -149,7 +149,8 @@ def store_tables() -> None:
         file_path = os.path.join(entity_store, f"{name}.json")
         h.set_file_writable(file_path)
         with open(file_path, "w") as f:
-            json.dump(dictionary, f, indent=4, sort_keys=True)
+            # no sort_keys: the order of e.g. the input and output channels of nodes and workflows is kept
+            json.dump(dictionary, f, indent=4)
         h.set_file_readonly(file_path)
         msg.log(logger.info, {"msg": "STORED_TABLE", "name": name})
 

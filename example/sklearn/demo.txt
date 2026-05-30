@@ -1,7 +1,7 @@
 // PREPARATION
 
 user {
-    "name":"sklearn","display_name":"demo user for the sklearn example","su":true
+    "name":"sklearn","admin":true
 };
 login sklearn;
 

@@ -1,0 +1,57 @@
+node {
+    "name": "n1",
+    "image": { "name": "sklearn_train", "version": "1" },
+    "inputs": [
+        { "name": "e1", "type": "environment_var", "format": "str", "environment_var_in_container": "SEED"},
+        { "name": "e2", "type": "str", "command_line_parameter": "--e2"}
+        ],
+    "outputs": [
+        { "name": "model", "type": "file", "format": "any", "path_in_container": "/data/model.pkl" }
+    ]
+};
+node {
+    "name": "n2",
+    "image": { "name": "sklearn_train", "version": "1" },
+    "inputs": [
+        { "name": "e3", "type": "int", "command_line_parameter": "--e3"},
+        { "name": "e4", "type": "float", "command_line_parameter": "--e4"}
+        ],
+    "outputs": [
+        { "name": "model", "type": "file", "format": "any", "path_in_container": "/data/model.pkl" }
+    ]
+};
+node {
+    "name": "n3",
+    "image": { "name": "sklearn_train", "version": "1" },
+    "inputs": [
+        { "name": "e5", "type": "bool", "command_line_parameter": "--e5"},
+        { "name": "e6", "type": "json", "command_line_parameter": "--e6"}],
+    "outputs": [
+        { "name": "model", "type": "file", "format": "any", "path_in_container": "/data/model.pkl" }
+    ]
+};
+
+node {
+    "name": "n5",
+    "image": { "name": "sklearn_predict", "version": "1"},
+    "inputs": [
+        { "name": "model", "type": "file", "format": "any", "path_in_container": "/data/model.pkl" },
+        { "name": "X_test", "type": "file", "format": "any", "path_in_container": "/data/X_test.json" }
+    ],
+    "outputs": [
+        { "name": "pred_labels", "type": "file", "format": "json", "path_in_container": "/data/pred_labels.json" }
+    ]
+};
+
+node {
+    "name": "n6",
+    "image": { "name": "sklearn_metric", "version": "1"},
+    "inputs": [
+        { "name": "cmd", "type": "str", "command_line_parameter": "--metric"},
+        { "name": "pred_labels", "type": "file", "format": "json", "path_in_container": "/data/pred_labels.json" },
+        { "name": "true_labels", "type": "file", "format": "json", "path_in_container": "/data/true_labels.json" }
+    ],
+    "outputs": [
+        { "name": "result", "type": "file", "format": "json", "path_in_container": "/data/result.json"}
+    ]
+};

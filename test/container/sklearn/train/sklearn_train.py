@@ -1,5 +1,5 @@
+import argparse
 import json
-import os
 import pickle
 import sys
 from sklearn.datasets import make_classification
@@ -11,17 +11,19 @@ from sklearn.linear_model import LogisticRegression
 MODEL_FILE = "/data/model.pkl"
 X_TEST_FILE = "/data/X_test.json"
 TRUE_LABELS_FILE = "/data/true_labels.json"
-SEED_NAME = "SEED"
+SEED_PARAMETER = "--seed"
 
 
 def main():
     try:
-        seed_value = os.environ.get(SEED_NAME)
+        # the seed is given as command line parameter "--seed <int>"
+        parser = argparse.ArgumentParser(description="generate a model, test features and true labels")
+        parser.add_argument(SEED_PARAMETER, type=int, help="seed of the random number generator")
+        args = parser.parse_args()
+        seed_value = args.seed
         if seed_value is None:
-            print(f"Error: Environment variable {SEED_NAME} is not set.")
+            print(f"Error: command line parameter {SEED_PARAMETER} is not set.")
             sys.exit(12)
-        else:
-            seed_value = int(seed_value)
 
         print(f"Started to generate the model with random seed {seed_value}")
 

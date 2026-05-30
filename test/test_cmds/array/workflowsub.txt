@@ -1,5 +1,5 @@
 workflow {
-    "name": "wf_cut_2_times",
+    "name": "wf_array_cut_2_times",
     "input": {
         "in_for_cut": { "type": "file", "format": "json" }
     },
@@ -7,10 +7,10 @@ workflow {
         "out_after_cut": { "type": "file", "format": "json" }
     },
     "bind": {
-        "left":    { "type": "environment_var", "format": "str", "environment_var_value": "left"  },
-        "right":   { "type": "environment_var", "format": "str", "environment_var_value": "right" },
-        "count_3": { "type": "environment_var", "format": "str", "environment_var_value": "3"     },
-        "count_2": { "type": "environment_var", "format": "str", "environment_var_value": "2"     }
+        "left":    { "type": "str", "value": "left"  },
+        "right":   { "type": "str", "value": "right" },
+        "count_3": { "type": "int", "value": 3     },
+        "count_2": { "type": "int", "value": 2     }
     },
     "connect": {
         "intermediate": { "type": "file", "format": "json" }
@@ -46,14 +46,14 @@ workflow {
 };
 
 workflow {
-    "name": "wf_process_array_with_subworkflow",
+    "name": "wf_array_with_subworkflow",
     "input": {
     },
     "output": {
         "joined_array": { "type": "file", "format": "json" }
     },
     "bind": {
-        "count_10": { "type": "environment_var", "format": "str", "environment_var_value": "10"}
+        "count_10": { "type": "int", "value": 10}
     },
     "connect": {
         "generated_array": { "type": "file", "format": "json" },
@@ -73,7 +73,7 @@ workflow {
         },
         "cut_2_times": {
             "workflow": {
-                "name": "wf_cut_2_times", "version": "latest"
+                "name": "wf_array_cut_2_times", "version": "latest"
             },
             "input":  {
                 "in_for_cut": "generated_array"
@@ -93,9 +93,4 @@ workflow {
             }
         }
     }
-};
-
-run {
-    "name": "run_process_array_with_subworkflow",
-    "workflow": { "name": "wf_process_array_with_subworkflow", "version": "latest" }
 };

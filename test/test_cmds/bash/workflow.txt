@@ -1,42 +1,3 @@
-data {
-    "name": "gen_string",
-    "type": "file",
-    "storage": "platform",
-    "hash": "true",
-    "format": "any", 
-    "user_path": "bash/gen_string.sh"
-};
-data {
-    "name": "repeat_string",
-    "type": "file",
-    "storage": "platform",
-    "hash": "true",
-    "format": "any", 
-    "user_path": "bash/repeat_string.sh"
-};
-
-node {
-    "name": "nd_gen_string_bash",
-    "bash": { "name": "gen_string", "version": "latest"},
-    "input": {
-        "string": { "type": "environment_var", "format": "str", "environment_var_in_container": "STRING"}
-    },
-    "output": {
-        "out": { "type": "file", "format": "any", "environment_var_in_container": "FILE"}
-    }
-};
-node {
-    "name": "nd_repeat_string_bash",
-    "bash": { "name": "repeat_string", "version": "latest"},
-    "input":  {
-        "count": { "type": "environment_var", "format": "str", "environment_var_in_container": "COUNT"},
-        "in": { "type": "file", "format": "any", "environment_var_in_container": "INPUT_FILE" }
-    },
-    "output": {
-        "out": { "type": "file", "format": "json", "environment_var_in_container": "OUTPUT_FILE"}
-    }
-};
-
 workflow {
     "name": "wf_process_string_bash",
     "input": {
@@ -103,9 +64,4 @@ workflow {
             }
         }
     }
-};
-
-run {
-    "name": "run_process_string_bash",
-    "workflow": { "name": "wf_process_string_bash", "version": "latest" }
 };

@@ -1,0 +1,22 @@
+node {
+    "name": "nd_gen_string_bash",
+    "bash": { "name": "gen_string", "version": "latest"},
+    "input": {
+        "string": { "type": "environment_var", "format": "str", "environment_var_in_container": "STRING"}
+    },
+    "output": {
+        "out": { "type": "file", "format": "any", "environment_var_in_container": "FILE"}
+    }
+};
+
+node {
+    "name": "nd_repeat_string_bash",
+    "bash": { "name": "repeat_string", "version": "latest"},
+    "input":  {
+        "count": { "type": "environment_var", "format": "str", "environment_var_in_container": "COUNT"},
+        "in": { "type": "file", "format": "any", "environment_var_in_container": "INPUT_FILE" }
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "environment_var_in_container": "OUTPUT_FILE"}
+    }
+};

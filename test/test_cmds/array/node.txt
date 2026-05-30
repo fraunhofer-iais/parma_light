@@ -1,0 +1,55 @@
+node {
+    "name": "nd_array_gen_r",
+    "image": { "name": "array_gen_r", "version": "1"},
+    "input":  {
+        "count": { "type": "int", "command_line_parameter": "--count"}
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "path_in_container": "/data/generated_array.json"}
+    }
+};
+node {
+    "name": "nd_array_gen_bash",
+    "image": { "name": "array_gen_bash", "version": "1"},
+    "input":  {
+        "count": { "type": "int", "command_line_parameter": "--count"}
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "path_in_container": "/data/generated_array.json"}
+    }
+};
+node {
+    "name": "nd_array_gen_python",
+    "image": { "name": "array_gen_python", "version": "1"},
+    "input":  {
+        "count": { "type": "int", "command_line_parameter": "--count"}
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "path_in_container": "/data/generated_array.json"}
+    }
+};
+node {
+    "name": "nd_array_cut",
+    "image": { "name": "array_cut", "version": "1"},
+    "input":  {
+        "direction": { "type": "str", "command_line_parameter": "--direction" },
+        "count": { "type": "int", "command_line_parameter": "--count" },
+        "in": { "type": "file", "format": "json", "path_in_container": "/data/input_array.json" }
+    },
+    "output": {
+        "out": { "type": "file", "format": "json", "path_in_container": "/data/output_array.json" }
+    }
+};
+node {
+    "name": "nd_array_join",
+    "image": { "name": "array_join", "version": "1"},
+    "input":  {
+        "in_1": {"type": "file", "format": "json", "path_in_container": "/data/in_1.json"},
+        "in_2": {"type": "file", "format": "json", "path_in_container": "/data/in_2.json"},
+        "in_3": {"type": "file", "format": "json", "path_in_container": "/data/in_3.json"},
+        "in_4": {"type": "file", "format": "json", "path_in_container": "/data/in_4.json"},
+        "in_5": {"type": "file", "format": "json", "path_in_container": "/data/in_5.json"}
+    },
+    "output": {
+        "out": {"type": "file", "format": "json", "path_in_container": "/data/output_array.json"} }
+};

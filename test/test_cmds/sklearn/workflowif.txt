@@ -1,0 +1,72 @@
+workflow {
+    "name": "wf_seed_42_with_if",
+    "input": {
+    },
+    "output": {
+        "accuracy_result":  { "type": "file", "format": "json", "litegraph": { "pos": [790,162] } }
+    },
+    "bind": {
+        "seed_setting":     { "type": "int", "value": 42 },
+        "condition":        { "type": "bool", "value": true },
+        "metric_accuracy":  { "type": "str", "value": "accuracy" },
+        "metric_accuracy_precision":
+                            { "type": "str", "value": "accuracy,precision" }
+    },
+    "connect": {
+        "model_file":        { "type": "file", "format": "any" },
+        "X_test_file":       { "type": "file", "format": "any" },
+        "pred_labels_file":  { "type": "file", "format": "any" },
+        "true_labels_file":  { "type": "file", "format": "any" }
+    },
+    "nodes": {
+        "model": {
+            "node": {"name": "nd_train", "version": "1"},
+            "input": {
+                "seed":        "seed_setting"
+            },
+            "output": {
+                "model":       "model_file",
+                "X_test":      "X_test_file",
+                "true_labels": "true_labels_file"
+            },
+            "litegraph": { "pos": [7,230] }
+        },
+        "predict": {
+            "node": {"name": "nd_predict", "version": "1"},
+            "input": {
+                "model":       "model_file",
+                "X_test":      "X_test_file"
+            },
+            "output": {
+                "pred_labels": "pred_labels_file"
+            },
+            "litegraph": { "pos": [272,184] }
+        },
+        "metric": {
+            "if": "condition",
+            "then": {
+                "node": {"name": "nd_metric", "version": "1"},
+                "input": {
+                    "cmd":         "metric_accuracy",
+                    "pred_labels": "pred_labels_file",
+                    "true_labels": "true_labels_file"
+                },
+                "output": {
+                    "result":      "accuracy_result"
+                }
+            },
+            "else": {
+                "node": {"name": "nd_metric", "version": "1"},
+                "input": {
+                    "cmd":         "metric_accuracy_precision",
+                    "pred_labels": "pred_labels_file",
+                    "true_labels": "true_labels_file"
+                },
+                "output": {
+                    "result":      "accuracy_result"
+                }
+            },
+            "litegraph": { "pos": [540,184] }
+        }
+    }
+};

@@ -1,0 +1,1066 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "serialNumber": "urn:uuid:d2b309f6-5824-46b8-a2ab-6f6dc4b5f01f",
+  "metadata": {
+    "timestamp": "2026-10-26T13:53:44.047652100Z",
+    "tools": [
+      {
+        "vendor": "Astral Software Inc.",
+        "name": "uv",
+        "version": "0.11.6"
+      }
+    ],
+    "component": {
+      "type": "library",
+      "bom-ref": "parma-light-1@0.1.0",
+      "name": "parma-light",
+      "version": "0.1.0",
+      "properties": [
+        {
+          "name": "uv:package:is_project_root",
+          "value": "true"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "annotated-types-2@0.7.0",
+      "name": "annotated-types",
+      "version": "0.7.0",
+      "purl": "pkg:pypi/annotated-types@0.7.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "attrs-3@25.3.0",
+      "name": "attrs",
+      "version": "25.3.0",
+      "purl": "pkg:pypi/attrs@25.3.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "blinker-4@1.9.0",
+      "name": "blinker",
+      "version": "1.9.0",
+      "purl": "pkg:pypi/blinker@1.9.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "boolean-py-5@5.0",
+      "name": "boolean-py",
+      "version": "5.0",
+      "purl": "pkg:pypi/boolean-py@5.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "cachecontrol-6@0.14.3",
+      "name": "cachecontrol",
+      "version": "0.14.3",
+      "purl": "pkg:pypi/cachecontrol@0.14.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "certifi-7@2025.7.14",
+      "name": "certifi",
+      "version": "2025.7.14",
+      "purl": "pkg:pypi/certifi@2025.7.14"
+    },
+    {
+      "type": "library",
+      "bom-ref": "charset-normalizer-8@3.4.2",
+      "name": "charset-normalizer",
+      "version": "3.4.2",
+      "purl": "pkg:pypi/charset-normalizer@3.4.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "click-9@8.1.8",
+      "name": "click",
+      "version": "8.1.8",
+      "purl": "pkg:pypi/click@8.1.8",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version < '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "click-10@8.2.1",
+      "name": "click",
+      "version": "8.2.1",
+      "purl": "pkg:pypi/click@8.2.1",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version >= '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "colorama-11@0.4.6",
+      "name": "colorama",
+      "version": "0.4.6",
+      "purl": "pkg:pypi/colorama@0.4.6",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "sys_platform == 'win32'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "cyclonedx-python-lib-12@9.1.0",
+      "name": "cyclonedx-python-lib",
+      "version": "9.1.0",
+      "purl": "pkg:pypi/cyclonedx-python-lib@9.1.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "debugpy-13@1.8.17",
+      "name": "debugpy",
+      "version": "1.8.17",
+      "purl": "pkg:pypi/debugpy@1.8.17"
+    },
+    {
+      "type": "library",
+      "bom-ref": "defusedxml-14@0.7.1",
+      "name": "defusedxml",
+      "version": "0.7.1",
+      "purl": "pkg:pypi/defusedxml@0.7.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "dotenv-15@0.9.9",
+      "name": "dotenv",
+      "version": "0.9.9",
+      "purl": "pkg:pypi/dotenv@0.9.9"
+    },
+    {
+      "type": "library",
+      "bom-ref": "exceptiongroup-16@1.3.0",
+      "name": "exceptiongroup",
+      "version": "1.3.0",
+      "purl": "pkg:pypi/exceptiongroup@1.3.0",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version < '3.11'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "filelock-17@3.19.1",
+      "name": "filelock",
+      "version": "3.19.1",
+      "purl": "pkg:pypi/filelock@3.19.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "flask-18@3.1.1",
+      "name": "flask",
+      "version": "3.1.1",
+      "purl": "pkg:pypi/flask@3.1.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "idna-19@3.10",
+      "name": "idna",
+      "version": "3.10",
+      "purl": "pkg:pypi/idna@3.10"
+    },
+    {
+      "type": "library",
+      "bom-ref": "importlib-metadata-20@8.7.0",
+      "name": "importlib-metadata",
+      "version": "8.7.0",
+      "purl": "pkg:pypi/importlib-metadata@8.7.0",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version < '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "iniconfig-21@2.1.0",
+      "name": "iniconfig",
+      "version": "2.1.0",
+      "purl": "pkg:pypi/iniconfig@2.1.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "itsdangerous-22@2.2.0",
+      "name": "itsdangerous",
+      "version": "2.2.0",
+      "purl": "pkg:pypi/itsdangerous@2.2.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "jinja2-23@3.1.6",
+      "name": "jinja2",
+      "version": "3.1.6",
+      "purl": "pkg:pypi/jinja2@3.1.6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "joblib-24@1.5.0",
+      "name": "joblib",
+      "version": "1.5.0",
+      "purl": "pkg:pypi/joblib@1.5.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "jsonschema-25@4.23.0",
+      "name": "jsonschema",
+      "version": "4.23.0",
+      "purl": "pkg:pypi/jsonschema@4.23.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "jsonschema-specifications-26@2025.4.1",
+      "name": "jsonschema-specifications",
+      "version": "2025.4.1",
+      "purl": "pkg:pypi/jsonschema-specifications@2025.4.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "liccheck-27@0.9.2",
+      "name": "liccheck",
+      "version": "0.9.2",
+      "purl": "pkg:pypi/liccheck@0.9.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "license-expression-28@30.4.4",
+      "name": "license-expression",
+      "version": "30.4.4",
+      "purl": "pkg:pypi/license-expression@30.4.4"
+    },
+    {
+      "type": "library",
+      "bom-ref": "markdown-it-py-29@3.0.0",
+      "name": "markdown-it-py",
+      "version": "3.0.0",
+      "purl": "pkg:pypi/markdown-it-py@3.0.0",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version < '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "markdown-it-py-30@4.0.0",
+      "name": "markdown-it-py",
+      "version": "4.0.0",
+      "purl": "pkg:pypi/markdown-it-py@4.0.0",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version >= '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "markupsafe-31@3.0.2",
+      "name": "markupsafe",
+      "version": "3.0.2",
+      "purl": "pkg:pypi/markupsafe@3.0.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "mdurl-32@0.1.2",
+      "name": "mdurl",
+      "version": "0.1.2",
+      "purl": "pkg:pypi/mdurl@0.1.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "msgpack-33@1.1.1",
+      "name": "msgpack",
+      "version": "1.1.1",
+      "purl": "pkg:pypi/msgpack@1.1.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "numpy-34@2.0.2",
+      "name": "numpy",
+      "version": "2.0.2",
+      "purl": "pkg:pypi/numpy@2.0.2",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version < '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "numpy-35@2.2.5",
+      "name": "numpy",
+      "version": "2.2.5",
+      "purl": "pkg:pypi/numpy@2.2.5",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version >= '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "packageurl-python-36@0.17.5",
+      "name": "packageurl-python",
+      "version": "0.17.5",
+      "purl": "pkg:pypi/packageurl-python@0.17.5"
+    },
+    {
+      "type": "library",
+      "bom-ref": "packaging-37@25.0",
+      "name": "packaging",
+      "version": "25.0",
+      "purl": "pkg:pypi/packaging@25.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pip-38@25.2",
+      "name": "pip",
+      "version": "25.2",
+      "purl": "pkg:pypi/pip@25.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pip-api-39@0.0.34",
+      "name": "pip-api",
+      "version": "0.0.34",
+      "purl": "pkg:pypi/pip-api@0.0.34"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pip-audit-40@2.9.0",
+      "name": "pip-audit",
+      "version": "2.9.0",
+      "purl": "pkg:pypi/pip-audit@2.9.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pip-licenses-41@5.0.0",
+      "name": "pip-licenses",
+      "version": "5.0.0",
+      "purl": "pkg:pypi/pip-licenses@5.0.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pip-requirements-parser-42@32.0.1",
+      "name": "pip-requirements-parser",
+      "version": "32.0.1",
+      "purl": "pkg:pypi/pip-requirements-parser@32.0.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "platformdirs-43@4.4.0",
+      "name": "platformdirs",
+      "version": "4.4.0",
+      "purl": "pkg:pypi/platformdirs@4.4.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pluggy-44@1.6.0",
+      "name": "pluggy",
+      "version": "1.6.0",
+      "purl": "pkg:pypi/pluggy@1.6.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "prettytable-45@3.16.0",
+      "name": "prettytable",
+      "version": "3.16.0",
+      "purl": "pkg:pypi/prettytable@3.16.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "py-serializable-46@2.1.0",
+      "name": "py-serializable",
+      "version": "2.1.0",
+      "purl": "pkg:pypi/py-serializable@2.1.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pydantic-47@2.11.4",
+      "name": "pydantic",
+      "version": "2.11.4",
+      "purl": "pkg:pypi/pydantic@2.11.4"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pydantic-core-48@2.33.2",
+      "name": "pydantic-core",
+      "version": "2.33.2",
+      "purl": "pkg:pypi/pydantic-core@2.33.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pygments-49@2.19.2",
+      "name": "pygments",
+      "version": "2.19.2",
+      "purl": "pkg:pypi/pygments@2.19.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pyparsing-50@3.2.5",
+      "name": "pyparsing",
+      "version": "3.2.5",
+      "purl": "pkg:pypi/pyparsing@3.2.5"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pytest-51@8.4.1",
+      "name": "pytest",
+      "version": "8.4.1",
+      "purl": "pkg:pypi/pytest@8.4.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "python-dotenv-52@1.2.1",
+      "name": "python-dotenv",
+      "version": "1.2.1",
+      "purl": "pkg:pypi/python-dotenv@1.2.1",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version < '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "python-dotenv-53@1.2.2",
+      "name": "python-dotenv",
+      "version": "1.2.2",
+      "purl": "pkg:pypi/python-dotenv@1.2.2",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version >= '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "python-on-whales-54@0.76.1",
+      "name": "python-on-whales",
+      "version": "0.76.1",
+      "purl": "pkg:pypi/python-on-whales@0.76.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "pyyaml-55@6.0.3",
+      "name": "pyyaml",
+      "version": "6.0.3",
+      "purl": "pkg:pypi/pyyaml@6.0.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "referencing-56@0.36.2",
+      "name": "referencing",
+      "version": "0.36.2",
+      "purl": "pkg:pypi/referencing@0.36.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "requests-57@2.32.4",
+      "name": "requests",
+      "version": "2.32.4",
+      "purl": "pkg:pypi/requests@2.32.4"
+    },
+    {
+      "type": "library",
+      "bom-ref": "rich-58@14.1.0",
+      "name": "rich",
+      "version": "14.1.0",
+      "purl": "pkg:pypi/rich@14.1.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "rpds-py-59@0.24.0",
+      "name": "rpds-py",
+      "version": "0.24.0",
+      "purl": "pkg:pypi/rpds-py@0.24.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "scikit-learn-60@1.6.1",
+      "name": "scikit-learn",
+      "version": "1.6.1",
+      "purl": "pkg:pypi/scikit-learn@1.6.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "scipy-61@1.13.1",
+      "name": "scipy",
+      "version": "1.13.1",
+      "purl": "pkg:pypi/scipy@1.13.1",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version < '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "scipy-62@1.15.2",
+      "name": "scipy",
+      "version": "1.15.2",
+      "purl": "pkg:pypi/scipy@1.15.2",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version >= '3.10'"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "semantic-version-63@2.10.0",
+      "name": "semantic-version",
+      "version": "2.10.0",
+      "purl": "pkg:pypi/semantic-version@2.10.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "sortedcontainers-64@2.4.0",
+      "name": "sortedcontainers",
+      "version": "2.4.0",
+      "purl": "pkg:pypi/sortedcontainers@2.4.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "threadpoolctl-65@3.6.0",
+      "name": "threadpoolctl",
+      "version": "3.6.0",
+      "purl": "pkg:pypi/threadpoolctl@3.6.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "toml-66@0.10.2",
+      "name": "toml",
+      "version": "0.10.2",
+      "purl": "pkg:pypi/toml@0.10.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "tomli-67@2.2.1",
+      "name": "tomli",
+      "version": "2.2.1",
+      "purl": "pkg:pypi/tomli@2.2.1"
+    },
+    {
+      "type": "library",
+      "bom-ref": "typing-extensions-68@4.13.2",
+      "name": "typing-extensions",
+      "version": "4.13.2",
+      "purl": "pkg:pypi/typing-extensions@4.13.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "typing-inspection-69@0.4.0",
+      "name": "typing-inspection",
+      "version": "0.4.0",
+      "purl": "pkg:pypi/typing-inspection@0.4.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "urllib3-70@2.5.0",
+      "name": "urllib3",
+      "version": "2.5.0",
+      "purl": "pkg:pypi/urllib3@2.5.0"
+    },
+    {
+      "type": "library",
+      "bom-ref": "uv-71@0.11.6",
+      "name": "uv",
+      "version": "0.11.6",
+      "purl": "pkg:pypi/uv@0.11.6"
+    },
+    {
+      "type": "library",
+      "bom-ref": "waitress-72@3.0.2",
+      "name": "waitress",
+      "version": "3.0.2",
+      "purl": "pkg:pypi/waitress@3.0.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "wcwidth-73@0.2.14",
+      "name": "wcwidth",
+      "version": "0.2.14",
+      "purl": "pkg:pypi/wcwidth@0.2.14"
+    },
+    {
+      "type": "library",
+      "bom-ref": "werkzeug-74@3.1.3",
+      "name": "werkzeug",
+      "version": "3.1.3",
+      "purl": "pkg:pypi/werkzeug@3.1.3"
+    },
+    {
+      "type": "library",
+      "bom-ref": "zipp-75@3.23.0",
+      "name": "zipp",
+      "version": "3.23.0",
+      "purl": "pkg:pypi/zipp@3.23.0",
+      "properties": [
+        {
+          "name": "uv:package:marker",
+          "value": "python_full_version < '3.10'"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "annotated-types-2@0.7.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "attrs-3@25.3.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "blinker-4@1.9.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "boolean-py-5@5.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "cachecontrol-6@0.14.3",
+      "dependsOn": [
+        "filelock-17@3.19.1",
+        "msgpack-33@1.1.1",
+        "requests-57@2.32.4"
+      ]
+    },
+    {
+      "ref": "certifi-7@2025.7.14",
+      "dependsOn": []
+    },
+    {
+      "ref": "charset-normalizer-8@3.4.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "click-9@8.1.8",
+      "dependsOn": [
+        "colorama-11@0.4.6"
+      ]
+    },
+    {
+      "ref": "click-10@8.2.1",
+      "dependsOn": [
+        "colorama-11@0.4.6"
+      ]
+    },
+    {
+      "ref": "colorama-11@0.4.6",
+      "dependsOn": []
+    },
+    {
+      "ref": "cyclonedx-python-lib-12@9.1.0",
+      "dependsOn": [
+        "license-expression-28@30.4.4",
+        "packageurl-python-36@0.17.5",
+        "py-serializable-46@2.1.0",
+        "sortedcontainers-64@2.4.0"
+      ]
+    },
+    {
+      "ref": "debugpy-13@1.8.17",
+      "dependsOn": []
+    },
+    {
+      "ref": "defusedxml-14@0.7.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "dotenv-15@0.9.9",
+      "dependsOn": [
+        "python-dotenv-52@1.2.1",
+        "python-dotenv-53@1.2.2"
+      ]
+    },
+    {
+      "ref": "exceptiongroup-16@1.3.0",
+      "dependsOn": [
+        "typing-extensions-68@4.13.2"
+      ]
+    },
+    {
+      "ref": "filelock-17@3.19.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "flask-18@3.1.1",
+      "dependsOn": [
+        "blinker-4@1.9.0",
+        "click-10@8.2.1",
+        "click-9@8.1.8",
+        "importlib-metadata-20@8.7.0",
+        "itsdangerous-22@2.2.0",
+        "jinja2-23@3.1.6",
+        "markupsafe-31@3.0.2",
+        "werkzeug-74@3.1.3"
+      ]
+    },
+    {
+      "ref": "idna-19@3.10",
+      "dependsOn": []
+    },
+    {
+      "ref": "importlib-metadata-20@8.7.0",
+      "dependsOn": [
+        "zipp-75@3.23.0"
+      ]
+    },
+    {
+      "ref": "iniconfig-21@2.1.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "itsdangerous-22@2.2.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "jinja2-23@3.1.6",
+      "dependsOn": [
+        "markupsafe-31@3.0.2"
+      ]
+    },
+    {
+      "ref": "joblib-24@1.5.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "jsonschema-25@4.23.0",
+      "dependsOn": [
+        "attrs-3@25.3.0",
+        "jsonschema-specifications-26@2025.4.1",
+        "referencing-56@0.36.2",
+        "rpds-py-59@0.24.0"
+      ]
+    },
+    {
+      "ref": "jsonschema-specifications-26@2025.4.1",
+      "dependsOn": [
+        "referencing-56@0.36.2"
+      ]
+    },
+    {
+      "ref": "liccheck-27@0.9.2",
+      "dependsOn": [
+        "semantic-version-63@2.10.0",
+        "toml-66@0.10.2"
+      ]
+    },
+    {
+      "ref": "license-expression-28@30.4.4",
+      "dependsOn": [
+        "boolean-py-5@5.0"
+      ]
+    },
+    {
+      "ref": "markdown-it-py-29@3.0.0",
+      "dependsOn": [
+        "mdurl-32@0.1.2"
+      ]
+    },
+    {
+      "ref": "markdown-it-py-30@4.0.0",
+      "dependsOn": [
+        "mdurl-32@0.1.2"
+      ]
+    },
+    {
+      "ref": "markupsafe-31@3.0.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "mdurl-32@0.1.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "msgpack-33@1.1.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "numpy-34@2.0.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "numpy-35@2.2.5",
+      "dependsOn": []
+    },
+    {
+      "ref": "packageurl-python-36@0.17.5",
+      "dependsOn": []
+    },
+    {
+      "ref": "packaging-37@25.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "parma-light-1@0.1.0",
+      "dependsOn": [
+        "debugpy-13@1.8.17",
+        "dotenv-15@0.9.9",
+        "flask-18@3.1.1",
+        "jsonschema-25@4.23.0",
+        "liccheck-27@0.9.2",
+        "numpy-34@2.0.2",
+        "numpy-35@2.2.5",
+        "pip-audit-40@2.9.0",
+        "pip-licenses-41@5.0.0",
+        "pytest-51@8.4.1",
+        "python-on-whales-54@0.76.1",
+        "pyyaml-55@6.0.3",
+        "requests-57@2.32.4",
+        "scikit-learn-60@1.6.1",
+        "uv-71@0.11.6",
+        "waitress-72@3.0.2"
+      ]
+    },
+    {
+      "ref": "pip-38@25.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "pip-api-39@0.0.34",
+      "dependsOn": [
+        "pip-38@25.2"
+      ]
+    },
+    {
+      "ref": "pip-audit-40@2.9.0",
+      "dependsOn": [
+        "cachecontrol-6@0.14.3",
+        "cyclonedx-python-lib-12@9.1.0",
+        "packaging-37@25.0",
+        "pip-api-39@0.0.34",
+        "pip-requirements-parser-42@32.0.1",
+        "platformdirs-43@4.4.0",
+        "requests-57@2.32.4",
+        "rich-58@14.1.0",
+        "toml-66@0.10.2"
+      ]
+    },
+    {
+      "ref": "pip-licenses-41@5.0.0",
+      "dependsOn": [
+        "prettytable-45@3.16.0",
+        "tomli-67@2.2.1"
+      ]
+    },
+    {
+      "ref": "pip-requirements-parser-42@32.0.1",
+      "dependsOn": [
+        "packaging-37@25.0",
+        "pyparsing-50@3.2.5"
+      ]
+    },
+    {
+      "ref": "platformdirs-43@4.4.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pluggy-44@1.6.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "prettytable-45@3.16.0",
+      "dependsOn": [
+        "wcwidth-73@0.2.14"
+      ]
+    },
+    {
+      "ref": "py-serializable-46@2.1.0",
+      "dependsOn": [
+        "defusedxml-14@0.7.1"
+      ]
+    },
+    {
+      "ref": "pydantic-47@2.11.4",
+      "dependsOn": [
+        "annotated-types-2@0.7.0",
+        "pydantic-core-48@2.33.2",
+        "typing-extensions-68@4.13.2",
+        "typing-inspection-69@0.4.0"
+      ]
+    },
+    {
+      "ref": "pydantic-core-48@2.33.2",
+      "dependsOn": [
+        "typing-extensions-68@4.13.2"
+      ]
+    },
+    {
+      "ref": "pygments-49@2.19.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "pyparsing-50@3.2.5",
+      "dependsOn": []
+    },
+    {
+      "ref": "pytest-51@8.4.1",
+      "dependsOn": [
+        "colorama-11@0.4.6",
+        "exceptiongroup-16@1.3.0",
+        "iniconfig-21@2.1.0",
+        "packaging-37@25.0",
+        "pluggy-44@1.6.0",
+        "pygments-49@2.19.2",
+        "tomli-67@2.2.1"
+      ]
+    },
+    {
+      "ref": "python-dotenv-52@1.2.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "python-dotenv-53@1.2.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "python-on-whales-54@0.76.1",
+      "dependsOn": [
+        "pydantic-47@2.11.4",
+        "typing-extensions-68@4.13.2"
+      ]
+    },
+    {
+      "ref": "pyyaml-55@6.0.3",
+      "dependsOn": []
+    },
+    {
+      "ref": "referencing-56@0.36.2",
+      "dependsOn": [
+        "attrs-3@25.3.0",
+        "rpds-py-59@0.24.0",
+        "typing-extensions-68@4.13.2"
+      ]
+    },
+    {
+      "ref": "requests-57@2.32.4",
+      "dependsOn": [
+        "certifi-7@2025.7.14",
+        "charset-normalizer-8@3.4.2",
+        "idna-19@3.10",
+        "urllib3-70@2.5.0"
+      ]
+    },
+    {
+      "ref": "rich-58@14.1.0",
+      "dependsOn": [
+        "markdown-it-py-29@3.0.0",
+        "markdown-it-py-30@4.0.0",
+        "pygments-49@2.19.2"
+      ]
+    },
+    {
+      "ref": "rpds-py-59@0.24.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "scikit-learn-60@1.6.1",
+      "dependsOn": [
+        "joblib-24@1.5.0",
+        "numpy-34@2.0.2",
+        "numpy-35@2.2.5",
+        "scipy-61@1.13.1",
+        "scipy-62@1.15.2",
+        "threadpoolctl-65@3.6.0"
+      ]
+    },
+    {
+      "ref": "scipy-61@1.13.1",
+      "dependsOn": [
+        "numpy-34@2.0.2"
+      ]
+    },
+    {
+      "ref": "scipy-62@1.15.2",
+      "dependsOn": [
+        "numpy-35@2.2.5"
+      ]
+    },
+    {
+      "ref": "semantic-version-63@2.10.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "sortedcontainers-64@2.4.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "threadpoolctl-65@3.6.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "toml-66@0.10.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "tomli-67@2.2.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "typing-extensions-68@4.13.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "typing-inspection-69@0.4.0",
+      "dependsOn": [
+        "typing-extensions-68@4.13.2"
+      ]
+    },
+    {
+      "ref": "urllib3-70@2.5.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "uv-71@0.11.6",
+      "dependsOn": []
+    },
+    {
+      "ref": "waitress-72@3.0.2",
+      "dependsOn": []
+    },
+    {
+      "ref": "wcwidth-73@0.2.14",
+      "dependsOn": []
+    },
+    {
+      "ref": "werkzeug-74@3.1.3",
+      "dependsOn": [
+        "markupsafe-31@3.0.2"
+      ]
+    },
+    {
+      "ref": "zipp-75@3.23.0",
+      "dependsOn": []
+    }
+  ]
+}

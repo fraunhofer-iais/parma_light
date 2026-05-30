@@ -1,0 +1,10 @@
+data_example_plain.txt
+
+Mit Hilfe eines Blindtextes kann die Verteilung des Textes auf der
+Seite (Layout oder Satzspiegel) sowie Lesbarkeit und Platzbedarf der
+verwendeten Schriftarten (Typografie) beurteilt werden. Er besteht aus
+einer mehr oder minder sinnlosen Folge von Wörtern, oft auch nur aus
+wortähnlichen Silbenfolgen. Ein bekanntes Beispiel dafür ist das
+pseudolateinische Lorem ipsum. Komponisten von Liedern benutzen
+Blindtexte beim Komponieren von Melodien und singen diese, bevor der
+Liedtext gedichtet wird (vgl. Vokalise).
