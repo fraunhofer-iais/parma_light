@@ -292,11 +292,14 @@ while [[ $# -gt 0 ]]; do
     # quality related commands
     assess)         run_assess ;;
 
+    apidoc)         python "$BASE_DIR/src/parma/apidoc.py" "$@"
+                    exit $? ;;
+
     publish-new-version) checkBranchClean
                     B=$(getBranchName)
                     case "$B" in
-                    master) : ;;
-                        *)  question "do you really want to push a tag to github from branch '$B'?" ;;
+                    main) : ;;
+                       *)  question "do you really want to push a tag to github from branch '$B'?" ;;
                     esac
                     version="$1"
                     case "$version" in
@@ -311,30 +314,49 @@ while [[ $# -gt 0 ]]; do
 
 
     # for easy testing and demonstration upload some info
-    init-datastore) UPLOAD_SKLEARN=${1:-1};shift
+    init-datastore) env_file="$BASE_DIR/.env_testsetup"
+                    property_file='./parma_light.yaml'
+                    while [[ 1 ]]; do
+                    case "$1" in
+                        [^-]*|'') break ;;
+                        -e)     env_file="$2"; shift; shift ;;
+                        -c)     property_file="$2"; shift; shift ;;
+                        *)      echo "invalid parameter $1 for init-datastore - exit 12" >&2
+                                exit 12 ;;
+                    esac
+                    done
+                    if [[ ! -f "$env_file" ]]; then
+                        echo "env file '$env_file' not found - exit 12" >&2
+                        exit 12
+                    fi
+                    source "$env_file"
+                    # server.host is the listen address (e.g. 0.0.0.0), not usable by a client. Use localhost
+                    port=$(get_yaml_val "server.port")
+                    export PARMA_URL="http://localhost:${port:-8080}"
+                    UPLOAD_SKLEARN=${1:-1};shift
                     UPLOAD_ARRAY=${1:-1};shift
                     UPLOAD_BASH=${1:-0};shift
                     if [[ "$UPLOAD_SKLEARN" == 1 ]]; then
                         echo 'upload sklearn related information for testing and demonstration'
-                        ./curl.sh --login root --password change_it --user test/test_cmds/sklearn/user.txt
-                        ./curl.sh --login sklearn --password sklearn --node test/test_cmds/sklearn/node.txt
-                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/sklearn/workflow.txt
-                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/sklearn/workflowsub.txt
-                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/sklearn/workflowif.txt
-                        ./curl.sh --login sklearn --password sklearn --run test/test_cmds/sklearn/run.txt
+                        ./curl.sh --admin user test/test_cmds/sklearn/user.txt
+                        ./curl.sh node test/test_cmds/sklearn/node.txt
+                        ./curl.sh workflow test/test_cmds/sklearn/workflow.txt
+                        ./curl.sh workflow test/test_cmds/sklearn/workflowsub.txt
+                        ./curl.sh workflow test/test_cmds/sklearn/workflowif.txt
+                        ./curl.sh run test/test_cmds/sklearn/run.txt
                     fi
                     if [[ "$UPLOAD_ARRAY" == 1 ]]; then
                         echo 'upload array related information for testing and demonstration'
-                        ./curl.sh --login sklearn --password sklearn --node test/test_cmds/array/node.txt
-                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/array/workflow.txt
-                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/array/workflowsub.txt
+                        ./curl.sh node test/test_cmds/array/node.txt
+                        ./curl.sh workflow test/test_cmds/array/workflow.txt
+                        ./curl.sh workflow test/test_cmds/array/workflowsub.txt
                     fi
                     if [[ "$UPLOAD_BASH" == 1 ]]; then
                         echo 'upload bash related information for testing and demonstration'
-                        ./curl.sh --login sklearn --password sklearn --data test/test_cmds/bash/data.txt
-                        ./curl.sh --login sklearn --password sklearn --node test/test_cmds/bash/node.txt
-                        ./curl.sh --login sklearn --password sklearn --workflow test/test_cmds/bash/workflow.txt
-                        ./curl.sh --login sklearn --password sklearn --run test/test_cmds/bash/run.txt
+                        ./curl.sh data test/test_cmds/bash/data.txt
+                        ./curl.sh node test/test_cmds/bash/node.txt
+                        ./curl.sh workflow test/test_cmds/bash/workflow.txt
+                        ./curl.sh run test/test_cmds/bash/run.txt
                     fi
                     echo 'uploading finished' ;;
 

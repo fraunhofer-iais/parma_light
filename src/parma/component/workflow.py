@@ -451,23 +451,6 @@ def _validate_renamings(
     return
 
 
-def _is_list_of_strings(variable) -> bool:
-    """
-    Checks if the variable is a non-empty list of strings.
-
-    Args:
-        variable: The variable to check.
-
-    Returns:
-        bool: True if variable is a non-empty list of strings, False otherwise.
-    """
-    return (
-        isinstance(variable, list)
-        and len(variable) > 0
-        and all(isinstance(item, str) for item in variable)
-    )
-
-
 def _validate_graph(workflow: dict) -> dict:
     """
     Validates the input/output channel connections in the workflow and checks for errors.
@@ -539,26 +522,6 @@ def _sort_graph(input_outputs: dict, workflow: dict) -> list:
             if output not in graph:
                 graph[output] = set()
             graph[output].update(channel["input"])
-    if "sequence" in workflow:
-        dbc.assert_true(
-            isinstance(workflow["sequence"], list),
-            {"msg": "INVALID_WORKFLOW", "reason": "sequence no list"},
-        )
-        for sequence in workflow["sequence"]:
-            dbc.assert_true(
-                _is_list_of_strings(sequence),
-                {"msg": "INVALID_WORKFLOW", "reason": "sequence no list of node names"},
-            )
-            dbc.assert_true(
-                all(node in workflow["nodes"] for node in sequence),
-                {"msg": "INVALID_WORKFLOW", "reason": "node in sequence unknown"},
-            )
-            before = sequence[0]
-            after = sequence[1:]
-            if before not in graph:
-                graph[before] = set(after)
-            else:
-                graph[before].update(after)
 
     try:
         ts = TopologicalSorter(graph)

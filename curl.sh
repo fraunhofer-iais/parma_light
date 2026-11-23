@@ -1,7 +1,7 @@
 #!/bin/bash
 # Calls the upload routes of the Parma Light backend from the command line, as the frontend does.
 # Every upload sends the content of a file (one or more definitions, JSON or blocks like 'node { ... };'),
-# except --data-file, that sends a plain file without metadata (the backend generates the data definition).
+# except data-file, that sends a plain file without metadata (the backend generates the data definition).
 #
 # The file content is never put on the command line: the JSON request body is written to a temporary
 # file and sent with "curl --data-binary @file", a plain file is sent as multipart form ("curl -F file=@...").
@@ -9,34 +9,11 @@
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd )"
 
-function usage {
-    cat <<EOF
-usage: $(basename "$0") [options] <command> <file>
-
-commands (exactly one):
-  --user <file>       add all users defined in <file>          (route /user/upload, admin only)
-  --data <file>       add all data defined in <file>           (route /data/upload)
-  --data-file <file>  add the plain <file> as data             (route /data/upload-file)
-                      name: file name with '.' replaced by '_', e.g. my.data.csv -> my_data_csv.
-                      A name starting with a digit gets a leading '_', e.g. 1.csv -> _1_csv.
-                      type "file", storage "platform", hash "true", format "any", user_path: file name
-  --node <file>       add all nodes defined in <file>          (route /node/upload)
-  --workflow <file>   add all workflows (and refines) in <file> (route /workflow/upload)
-  --run <file>        execute all runs defined in <file>       (route /run/upload)
-                      returns when the last run has finished, stops at the first failing run
-
-options:
-  --host <url>        backend url, default: \$PARMA_HOST or http://localhost:8080
-  --login <name>      user name for login, default: \$PARMA_USER
-  --password <pw>     password for login, default: \$PARMA_PASSWORD (asked for, if not set)
-  --help              this help
-
-The command logs in, uploads the file and logs out. Exit code 0 on success, 12 otherwise.
-example: $(basename "$0") --login admin --node test/test_cmds/sklearn/node.txt
-EOF
+function short_usage {
+    echo "usage: $(basename "$0") [options] <command> <file>     more help: $(basename "$0") help"
 }
 
-host="http://localhost:8080"
+as_admin=0
 login_name=""
 login_password=""
 route=""
@@ -57,35 +34,52 @@ function set_command {
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --user)       set_command "/user/upload" "$2"; shift 2 ;;
-        --data)       set_command "/data/upload" "$2"; shift 2 ;;
-        --data-file)  set_command "/data/upload-file" "$2"; shift 2 ;;
-        --node)       set_command "/node/upload" "$2"; shift 2 ;;
-        --workflow)   set_command "/workflow/upload" "$2"; shift 2 ;;
-        --run)        set_command "/run/upload" "$2"; shift 2 ;;
-        --host)       host="$2"; shift 2 ;;
-        --login)      login_name="$2"; shift 2 ;;
-        --password)   login_password="$2"; shift 2 ;;
-        --help)       usage; exit 0 ;;
-        *)            echo "Error: unknown parameter '$1'. Exit 12"; usage; exit 12 ;;
+        --admin)    as_admin=1; shift ;;
+        user)       set_command "/user/upload" "$2"; shift 2; break ;;
+        data)       set_command "/data/upload" "$2"; shift 2; break ;;
+        data-file)  set_command "/data/upload-file" "$2"; shift 2; break ;;
+        node)       set_command "/node/upload" "$2"; shift 2; break ;;
+        workflow)   set_command "/workflow/upload" "$2"; shift 2; break ;;
+        run)        set_command "/run/upload" "$2"; shift 2; break ;;
+        help)       cat "$BASE_DIR/curl_help.txt"; exit 0 ;;
+        *)          echo "Error: unknown parameter '$1'. Exit 12"; short_usage; exit 12 ;;
     esac
 done
 
+if [[ $# -gt 0 ]]; then
+    echo "Error: unexpected parameter(s) after the command: $*. Options must precede the command. Exit 12"
+    short_usage
+    exit 12
+fi
 if [[ -z "$route" ]]; then
-    echo "Error: a command (--user, --data, --data-file, --node, --workflow or --run) is required. Exit 12"
-    usage
+    echo "Error: a command (user, data, data-file, node, workflow or run) is required. Exit 12"
+    short_usage
     exit 12
 fi
 if [[ ! -f "$file" ]]; then
     echo "Error: file '$file' not found. Exit 12"
     exit 12
 fi
+if [[ -z "$PARMA_URL" ]]; then
+    echo "Error: PARMA_URL (url of the backend, e.g. http://localhost:8080) is not set. Exit 12"
+    short_usage
+    exit 12
+fi
+if [[ "$as_admin" == 1 ]]; then
+    login_name="${PARMA_ADMIN_USER}"
+    login_password="${PARMA_ADMIN_PASSWORD}"
+else
+    login_name="$PARMA_USER"
+    login_password="$PARMA_PASSWORD"
+fi
 if [[ -z "$login_name" ]]; then
-    echo "Error: login name missing (use --login). Exit 12"
+    echo "Error: login name missing. Exit 12"
+    short_usage
     exit 12
 fi
 if [[ -z "$login_password" ]]; then
-    echo "Error: password missing (use --password). Exit 12"
+    echo "Error: password missing for '$login_name'. Exit 12"
+    short_usage
     exit 12
 fi
 
@@ -149,8 +143,8 @@ function post {
         headers+=(-H "X-Auth-Token: $4")
     fi
     if ! curl --silent --show-error --fail-with-body -X POST "${headers[@]}" \
-              --data-binary "@$2" -o "$3" "$host$1"; then
-        echo "Error: request to $host$1 failed. Exit 12"
+              --data-binary "@$2" -o "$3" "$PARMA_URL$1"; then
+        echo "Error: request to $PARMA_URL$1 failed. Exit 12"
         [[ -s "$3" ]] && cat "$3"
         exit 12
     fi
@@ -163,8 +157,8 @@ function post_file {
     quoted_file="${quoted_file//\\/\\\\}"   # \ -> \\
     quoted_file="${quoted_file//\"/\\\"}"   # " -> \"
     if ! curl --silent --show-error --fail-with-body -X POST -H "X-Auth-Token: $4" \
-              -F "file=@\"$quoted_file\"" -o "$3" "$host$1"; then
-        echo "Error: request to $host$1 failed. Exit 12"
+              -F "file=@\"$quoted_file\"" -o "$3" "$PARMA_URL$1"; then
+        echo "Error: request to $PARMA_URL$1 failed. Exit 12"
         [[ -s "$3" ]] && cat "$3"
         exit 12
     fi

@@ -31,4 +31,4 @@ function activate_env {
 }
 
 activate_env
-python src/parma/backend.py $@
+python src/parma/main.py $@

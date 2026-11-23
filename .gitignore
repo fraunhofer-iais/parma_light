@@ -1,3 +1,6 @@
 .venv/
 **/__pycache__/
 datastore_*/
+
+# local settings and real passwords (see .env_testsetup)
+.env

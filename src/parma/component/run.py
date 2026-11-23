@@ -132,7 +132,7 @@ def _run_nodes_lazily(run: dict, channel_bindings: dict, logged_in_user: str) ->
 
     The roots are the nodes that write a workflow output or whose outputs are read by no other node (they
     are executed in topological order). Before a node is executed, the nodes writing the channels it
-    reads are executed (and the nodes that must run before it, see "sequence"). For an if node first the
+    reads are executed. For an if node first the
     writer of the condition is executed, then the condition is evaluated, then the writers of the inputs
     of the selected branch, then the branch. Nodes never demanded are skipped (e.g. nodes whose outputs
     are only read by the branch not selected). Without if nodes all nodes are executed.
@@ -150,10 +150,6 @@ def _run_nodes_lazily(run: dict, channel_bindings: dict, logged_in_user: str) ->
     position = {name: index for index, name in enumerate(order)}
     writer_of = {channel: name for name, node in nodes.items() for channel in wf.node_output_channels(node)}
     channels_read = {channel for node in nodes.values() for channel in wf.node_input_channels(node)}
-    must_run_before = {}  # node name -> nodes, that must run before (from "sequence")
-    for sequence in run.get("sequence") or []:
-        for after in sequence[1:]:
-            must_run_before.setdefault(after, []).append(sequence[0])
     state = {}  # node name -> True (executed successfully) | False (failed or being evaluated)
 
     def by_position(names) -> list:
@@ -168,8 +164,7 @@ def _run_nodes_lazily(run: dict, channel_bindings: dict, logged_in_user: str) ->
             return state[node_name]
         state[node_name] = False  # cycles are excluded when the workflow is stored
         node = nodes[node_name]
-        ok = all(evaluate(before) for before in by_position(must_run_before.get(node_name, [])))
-        if ok and "if" in node:
+        if "if" in node:
             ok = ensure_written([node["if"]])
             if ok:
                 condition = _condition_value(node_name, node["if"], run, channel_bindings)
@@ -179,7 +174,7 @@ def _run_nodes_lazily(run: dict, channel_bindings: dict, logged_in_user: str) ->
                                  f"the {branch} branch {used['name']}:{used['version']} is executed", log_message=True)
                 ok = ensure_written(node[branch]["input"].values()) and \
                      _run_used_node(f"{node_name}_{branch}", node[branch], run, channel_bindings, logged_in_user)
-        elif ok:
+        else:
             ok = ensure_written(node["input"].values()) and \
                  _run_used_node(node_name, node, run, channel_bindings, logged_in_user)
         state[node_name] = ok

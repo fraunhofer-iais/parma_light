@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
   "version": 1,
-  "serialNumber": "urn:uuid:d2b309f6-5824-46b8-a2ab-6f6dc4b5f01f",
+  "serialNumber": "urn:uuid:81c2e09d-9eb5-4a57-a5f7-3d468528407d",
   "metadata": {
-    "timestamp": "2026-10-26T13:53:44.047652100Z",
+    "timestamp": "2026-11-23T16:36:19.967477200Z",
     "tools": [
       {
         "vendor": "Astral Software Inc.",

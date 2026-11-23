@@ -1,0 +1,81 @@
+Please read the README.md of the parma_light git repository.
+============================================================
+
+curl.sh calls the upload routes of the PARMA light backend from the command line, as the frontend does.
+Every call logs in, uploads the content of one file, prints the JSON response and logs out.
+Exit code 0 on success, 12 otherwise.
+
+  curl.sh [options] <command> <file>
+
+Commands (exactly one):
+  user <file>
+    add all users defined in <file>. Route /user/upload. Admin only, thus use it with '--admin'.
+
+  data <file>
+    add all data defined in <file>. Route /data/upload.
+
+  data-file <file>
+    add the plain <file> as data. Route /data/upload-file. No metadata is needed, the backend generates
+    the data definition:
+    - name: file name with '.' replaced by '_', e.g. my.data.csv -> my_data_csv.
+      A name starting with a digit gets a leading '_', e.g. 1.csv -> _1_csv.
+    - type "file", storage "platform", hash "true", format "any", user_path: the file name
+
+  node <file>
+    add all nodes defined in <file>. Route /node/upload.
+
+  workflow <file>
+    add all workflows (and refines) defined in <file>. Route /workflow/upload.
+
+  run <file>
+    execute all runs defined in <file>. Route /run/upload.
+    Returns when the last run has finished, stops at the first failing run.
+
+  A <file> contains one or more definitions, either JSON or blocks like 'node { ... };'.
+  See the directories in 'test/test_cmds' for examples.
+
+  help
+    get this help text.
+
+Options (must precede the command):
+  --admin
+    log in as admin with PARMA_ADMIN_USER and PARMA_ADMIN_PASSWORD.
+    Without this option PARMA_USER and PARMA_PASSWORD are used.
+
+Configuration:
+  curl.sh reads the url of the backend and the credentials ONLY from environment variables:
+    PARMA_URL              url of the backend, e.g. http://localhost:8080
+    PARMA_ADMIN_USER       login name of the admin user (used with '--admin')
+    PARMA_ADMIN_PASSWORD   password of the admin user (used with '--admin')
+    PARMA_USER             login name of the normal user
+    PARMA_PASSWORD         password of the normal user
+
+  The credentials are kept in env files with 'export KEY=value' lines:
+    .env_testsetup  git-controlled. Contains ONLY the well known values of the test setup.
+    .env            git-ignored. Contains the real passwords.
+  'admin.sh init-datastore' sources one of them (default .env_testsetup, choose another one with
+  'admin.sh init-datastore -e <file>') and sets PARMA_URL from the property file.
+  If you call curl.sh directly, source an env file and set PARMA_URL in your shell first (see examples).
+  Use a subshell '( ... )' to keep the passwords out of your interactive shell afterwards.
+
+Notes:
+  The file content is never put on the command line. The JSON request body is written to a temporary file
+  and sent with "curl --data-binary @file", a plain file is sent as multipart form ("curl -F file=@...").
+  Thus the size of the file can't break the curl command.
+  To build JSON 'jq' is used, if available, otherwise python.
+
+Examples:
+  calling curl.sh directly with the test setup:
+    source .env_testsetup
+    export PARMA_URL=http://localhost:8080
+    ./curl.sh --admin user test/test_cmds/sklearn/user.txt
+    ./curl.sh node test/test_cmds/sklearn/node.txt
+    ./curl.sh run test/test_cmds/sklearn/run.txt
+    ./curl.sh data-file my.data.csv
+
+  with the real passwords, in a subshell:
+    ( source .env; export PARMA_URL=http://localhost:8080; ./curl.sh node my_nodes.txt )
+
+  calling curl.sh by admin.sh:
+    ./admin.sh init-datastore                  upload the test setup (users, nodes, workflows, runs)
+    ./admin.sh init-datastore -e .env          the same, credentials from .env

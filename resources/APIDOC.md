@@ -1,354 +1,359 @@
 # Documentation For The Platform Parma-Light
 
-this documents describes
+This document describes
 
-- the commands of the CLI. The CLI ist a text-based frontend for the backend server of the platform Parma-Light
-- in the near future the GUI-based frontend will be added
-- the API of the endpoints of the backend server of the platform Parma-Light
+- how the platform is used (web frontend, command line uploads)
+- the definitions of users, data, nodes, workflows, refinements and runs, as they are uploaded to the platform
+- the general rules of the REST endpoints of the backend server
 - some design decisions of the backend server
+
+The reference of all REST endpoints (request, response, token) and the exact structure of all definitions are
+**generated** from the source code into [generated/API-REFERENCE.md](generated/API-REFERENCE.md)
+(by `./admin.sh apidoc`, from the route docstrings and the JSON schema
+`src/parma/intern/schema-def-for-user-commands.json`). This document describes the semantics. If it and the
+schema differ, the schema is right.
 
 ## Usage
 
-- the backend server is run by calling `./admin.sh --backend`. This starts the backend server listening at port `8080`
-- then the CLI is run by calling `./admin.sh --frontend`. It enters into a toplevel loop, reading a command and then executing
-  it by calling the matching endpoint of the backend server.
-
-## Commands of the CLI
-
-### General commands
-
-- `exit` OR `quit` terminate the CLI
-- `store` store all tables in the file system
-- `redirect <path>` load commands from file `<path>`. Commands may spawn many lines and are terminated by a ';'
-  as last character of a line
-- `login <user_name>` login with <user_name>
-- `logout`
-- `locale <en OR de>` set the locale for messages
-- `test_data` to load some test data into the pl-database. In directory 'test/test_cmds' the commands (and more) are found.
-  Copy, edit and paste.
-
-To be discussed and not yet implemented:
-
-- `statistics` to print statistics
-- `gc` to remove unused data
-- `commit` to commit all changes of the PL-database permanently (currently each command commits its changes)
-- `reset` remove all data changed in the PL-database since the last commit, includes a gc() call
-
-### CLI commands to add new entities to the database
-
-- `user <json>`
-  - add a new user.
-  - \<json\> as in [user definition](#the-endpoint-user)
-
-- `data <json>`
-  - add a new file.
-  - \<json\> as in [data definition](#the-endpoint-data)
-
-- `node <json>`
-  - add a new node.
-  - \<json\> as in [node definition](#the-endpoint-node)
-
-- `workflow <json>`
-  - add a new workflow.
-  - \<json\> as in [workflow definition](#the-endpoint-workflow)
-
-- `refine <json>`
-  - modify an existing workflow.
-  - \<json\> as in [refine definition](#the-endpoint-refine)
-
-### CLI command to run a workflow
-
-- `run <json>`
-  - run an existing workflow.
-  - \<json\> as in [run definition](#the-endpoint-run)
-
-### CLI commands to view tables of entities
-
-- `view user` see relevant data of all user added in the past
-- `view data` see relevant data of all data added in the past
-- `view node` see relevant data of all nodes added in the past
-- `view workflow` see relevant data of all workflows added in the past
-- `view run` see relevant data of all workflow runs
-
-These commands can be fine-tuned by a pattern to filter the output and a count to restrict the number of output lines.
-These properties can be set and reset
-
-- `view pattern <PATTERN>` to define a pattern
-- `view count <number>` to define a restriction for the number of lines shown
-- `view reset` to reset the pattern and count properties
-
-### CLI commands to view and export data content
-
-- `view data_of <ENTITY>` to see the data read and written by an ENTITY.
-- `view log_of <ENTITY>` to see the logging data of an ENTITY.
-- `cat <DATA>` to see the content of the data object.
-- `export <DATA> <path-to-a-file>` copy the content of a data object into a file.
-
-`<DATA>` and `<ENTITY>` can be either
-
-- a string without white space that specifies a hash value,
-- two strings separated by white space that specify name and version, or
-- a json object with either the properties `name` and `version` or the property `hash`
+- `./admin.sh server` starts the backend server. It listens at port `8080` (see `server.port` in `parma_light.yaml`).
+- the frontend is a web application served by the backend: open `http://localhost:8080` in a browser and log in.
+  It shows lists of data, nodes, workflows and runs. Definitions can be uploaded, downloaded, edited and deleted,
+  workflows can be edited graphically (based on LiteGraph) and run, the data and logs of runs can be inspected.
+- `./curl.sh` uploads files with definitions from the command line, as the frontend does. See `./curl.sh help`.
+- `./admin.sh init-datastore` uploads the definitions of `test/test_cmds` for testing and demonstration.
+  See `./admin.sh help`.
 
 ## Design decisions for the backend server
 
-- each endpoint uses the method `POST` and gets the data expected from the user (i.e. from the frontend) as a JSON object
-- all keys ("metadata") added by the platform when a new entity is stored, are prefixed with '\_', a key given by the user
-  _must never_ start with '\_'.
-- all entities (data, nodes, workflows, runs) of the parma-light platform are stored in a database in separate tables. As the primary key a hash of the content of the entity is used. This key is called "hash".
+- each endpoint (except `GET /`) uses the method `POST` and gets the data from the frontend as a JSON object.
+- all entities (users, data, nodes, workflows, runs) are stored in separate tables. The primary key is a hash
+  of the content of the entity, called "hash".
+- all keys ("metadata") added by the platform when a new entity is stored are prefixed with `_`, e.g. `_version`,
+  `_date`, `_hash_of_creating_user`. A key given by the user _must never_ start with `_`.
+- **"name" and "\_version"**: the pair is unique. If a new definition is added and its "name" is already used,
+  the platform sets "\_version" to the next unused number. The "latest" definition is the one with the highest
+  "\_version".
+- **referers**: a definition refers to another entity by `{"name": "<name>", "version": "<number or latest>"}`.
+  Hashes are not accepted in user definitions, they are used internally only (e.g. by the frontend).
+- **the "type" key** describes the kind of a channel or data:
+  - `file`, `directory` - data stored by the platform, passed to a node as a path
+  - `environment_var` - a string value passed to a node as environment variable or command line parameter
+  - `str`, `int`, `float`, `bool`, `json` - constants, passed as environment variable or command line parameter.
+    For constants the "format" is optional and defaults to `str`.
+- **the "format" key** describes the format of the content of a channel or file: `json`, `str` or `any`.
+  This part will be revised in the future to support a richer type system.
 
-- database tables contain keys **"name" and "\_version"** (an int value). The pair "name" and "\_version" is guaranteed to be unique. If a
-  new definition is added to the pl-database and the "name" is already used, the "\_version" key is incremented automaticaly to the next
-  unused number. This is done by the platform, not the user. The do-called "latest" definition is the one with the highest "\_version".
+## Definitions
 
-- **the "type" key** is used in the entities "data", "node" and "workflow". The key describes the type of data. This part will be revised
-  in the next future to support a rich system (directories, streams, rpc channels, ...). Currently there is only support for:
-  - file
-  - directory
-  - environment_var
+The keys, their values and which of them are required are listed in the section "Definitions" of
+[generated/API-REFERENCE.md](generated/API-REFERENCE.md). Here the meaning and the rules not expressed by the
+schema are described.
 
-- **the "format" key** is used in the entities "data", "node" and "workflow". The key describes the format/type of the content of channels
-  and files. This part will be revised in the next future to support a rich type system (jsonschema, arrow definition, numpy types, ...).
-  Currently there is only support for:
-  - json
-  - str
-  - any
+### The upload format
 
-## The FLASK endpoints of the backend server
+The content of an uploaded file (by the frontend or by `curl.sh`) is either
 
-All endpoints use the POST method. All endpoints expect a JSON object as payload.
+- plain JSON: one definition as object or a list of definitions, or
+- one or more blocks `<keyword> { ... }`, each optionally terminated by `;`. The keyword is `user`, `data`, `node`,
+  `workflow`, `refine` or `run`. A file for the workflow upload may contain `workflow` and `refine` blocks.
 
-### The endpoint `/user`
+The definitions are stored one after the other. Processing stops at the first error, definitions stored before
+remain stored. The response says which.
 
-Add a user to the pl-database.
+### User
 
 ```json
 {
-  "name": "<user chosen name>",
-  "display_name": "<user chosen display name>",
-  "admin": "<super user or not: true or false>"
+  "name": "<alphanumeric name>",
+  "admin": <true or false>,
+  "password": "<initial password>"
 }
 ```
 
 Remarks:
 
-- the "\_version" attribute in the pl-database attribute is always "1"
-- For security there are no different versions of a user with given "name".
+- only admins may add or remove users. The initial datastore contains the admin user `root`.
+- the "\_version" of a user is always 1. For security there are no different versions of a user.
+- the password is stored as a hash. Users change their password in the frontend.
 
 Example:
 
 ```json
 user {
-  "name":"ibudde",
-  "display_name":"Inte Budde",
-  "admin":false
+  "name": "max",
+  "admin": false,
+  "password": "change_it"
 };
 ```
 
-### The endpoint `/data`
+### Data
 
-Add a data object to the pl-database
+Adds a file or a directory to the platform.
 
 ```json
 {
-  "name": "<user chosen name of the data>",
-  "type": <see section about special_keys>,
-  "format": <see section about special_keys>,
-  "storage": "<platform or extern: save copy of file in the platform>",
-  "hash": "<true or false: compute a hash of the content of a file>",
-  "user_path": "<path in the user space>"
+  "name": "<name, may start with '_'>",
+  "type": "<file or directory>",
+  "format": "<json, str or any>",
+  "storage": "<platform: store a copy in the platform, or extern>",
+  "hash": "<\"true\" or \"false\": compute a hash of the content>",
+  "user_path": "<path of the file or directory>"
 }
 ```
+
+Remarks:
+
+- all keys are required.
+- "user_path" is read on the server. A relative path is relative to the base directory (`store.base_dir` of the
+  yaml property file).
+- a plain file can be uploaded without a definition (frontend, or `curl.sh data-file <file>`). The definition is
+  generated: the name is the file name with `.` replaced by `_` (prefixed by `_` if it starts with a digit),
+  type `file`, format `any`, storage `platform`, hash `"true"`.
 
 Example:
 
 ```json
 data {
-  "name": "pred_labels",
+  "name": "gen_string",
   "type": "file",
-  "format": "json",
-  "user_path": "test/test_data/scikit-learn/pred_labels.json"
+  "storage": "platform",
+  "hash": "true",
+  "format": "any",
+  "user_path": "bash/_gen_string.sh"
 };
 ```
 
-### The endpoint `/node`
+### Node
 
-Add a node to the pl-database.
+A node is a program with input and output channels. It is executed as a docker image, a bash script or a nix
+derivation.
 
 ```json
 {
-  "name": "<user chosen name of the node>",
-  "image": {"name": "<image>", "version":<version>},
-  "input": {"<name-of-the-channel": datadef, ...},
-  "output": {"<name-of-the-channel": datadef, ...}
+  "name": "<alphanumeric name>",
+  "image": {"name": "<docker image>", "version": "<tag>"},
+  "bash":  {"name": "<name of a data entry containing the script>", "version": "<number or latest>"},
+  "nix":   {"uri": "<nix uri>"} or {"hash": "<nix hash>"},
+  "input":  {"<channel name>": channel_def, ...},
+  "output": {"<channel name>": channel_def, ...}
 }
 ```
 
-Part of a node definition: datadef
+Part of a node definition: channel_def
 
 ```json
 {
-  "type": <see section about special_keys>,
-  "format": <see section about special_keys>,
+  "type": "<see design decisions>",
+  "format": "<json, str or any>",
   "path_in_container": "<path in the running container>",
-  "environment_var_in_container": "<name of a environment variable in the container, that will contain data (a json object, e.g.) at runtime>"
+  "environment_var_in_container": "<name of an environment variable>",
+  "command_line_parameter": "<parameter, e.g. --seed>"
 }
 ```
 
 Remarks:
 
-- "input" and "output" are two kinds lists of channels a node is using.
-- a channel list may be empty.
-- "environment_var_in_container" is only legal for "input" channels
-- only one of "path_in_container" and "environment_var_in_container" may be used in a datadef and must match the requirements of "type".
+- exactly one of "image", "bash" and "nix" is required. Bash and nix nodes are not supported on windows.
+- "input" and "output" are required, but may be empty.
+- instead of "input"/"output" the list format "inputs"/"outputs" can be used:
+  `"inputs": [{"name": "<channel name>", "type": ..., ...}, ...]`. Both formats must not be mixed for one direction.
+- every channel_def has exactly one of "path_in_container", "environment_var_in_container" and
+  "command_line_parameter".
+- `file` and `directory` channels are passed by path (in the container or in an environment variable).
+- constants and `environment_var` are passed as environment variable or command line parameter, never by path.
+- command line parameters are allowed for inputs only and not for nix nodes.
+- outputs must not have a constant type: node outputs are always files or directories.
 
 Example:
 
 ```json
 node {
-  "name": "scikit_learn",
-  "image": {"name": "scikit_learn", "version": "2",
-  "input": {
-      "cmd":         { "type": "environment_var", "format": "str",  "environment_var_in_container": "CMD"},
-      "pred_labels": { "type": "file", "format": "json", "path_in_container": "/data/pred_labels.json" },
-      "true_labels": { "type": "file", "format": "json", "path_in_container": "/data/true_labels.json" }
-  },
-  "output": {
-      "result": {"path_in_container": "/data/result.json"}
-  }
+    "name": "nd_metric",
+    "image": { "name": "sklearn_metric", "version": "1" },
+    "inputs": [
+        { "name": "cmd",         "type": "str",  "command_line_parameter": "--metric" },
+        { "name": "pred_labels", "type": "file", "format": "json", "path_in_container": "/data/pred_labels.json" },
+        { "name": "true_labels", "type": "file", "format": "json", "path_in_container": "/data/true_labels.json" }
+    ],
+    "outputs": [
+        { "name": "result", "type": "file", "format": "json", "path_in_container": "/data/result.json" }
+    ]
 };
 ```
 
-## The endpoint `/workflow`
+### Workflow
 
-Add a workflow to the pl-database.
+A workflow connects nodes, sub workflows and if nodes by channels.
 
 ```json
 {
-  "name": "<user chosen name of the workflow>",
-  "input":   {"<workflow_channel_name>": channel_decl, ...},
-  "output":  {"<workflow_channel_name>": channel_decl, ...},
-  "bind":    {"<workflow_channel_name>": channel_binding, ...},
-  "connect": {"<workflow_channel_name>": channel_decl, ...},
-  "nodes":   {"<node_name>": node_def, ... }
+  "name": "<alphanumeric name>",
+  "input":   {"<workflow channel name>": channel_decl, ...},
+  "output":  {"<workflow channel name>": channel_decl, ...},
+  "bind":    {"<workflow channel name>": channel_binding, ...},
+  "connect": {"<workflow channel name>": channel_decl, ...},
+  "nodes":   {"<node name>": node_use or if_node, ...}
 }
 ```
 
-Part of workflow definition: channel_decl
+Part of a workflow definition: channel_decl
 
 ```json
 {
-  "type": <see section about special_keys>,
-  "format": <see section about special_keys>
+  "type": "<see design decisions>",
+  "format": "<json, str or any>"
 }
 ```
 
-Part of workflow definition: channel_binding
+Part of a workflow definition: channel_binding
 
 ```json
 {
-  "type": <see section about special_keys>,
-  "format": <see section about special_keys>,
-  "environment_var_value": <value bound to a channel, which is an "environment_var">,
-  "data": {<definition either by "name" and "version", or "hash">}
+  "type": "<see design decisions>",
+  "format": "<json, str or any>",
+  "data": {"name": "<name of a data entry>", "version": "<number or latest>"},
+  "environment_var_value": "<string>",
+  "value": <constant>
 }
 ```
 
-Part of workflow definition: node_def
+Part of a workflow definition: node_use (a node or a sub workflow)
 
 ```json
 {
-  "node": {<definition either by "name" and "version", or "hash">},
-  "workflow": {<definition either by "name" and "version", or "hash">},
-  "input":   {"<node_channel_name>": "<renaming_to_workflow_channel_name>", ...},
-  "output":  {"<node_channel_name>": "<renaming_to_workflow_channel_name>", ...}
+  "node":     {"name": "<name>", "version": "<number or latest>"},
+  "workflow": {"name": "<name>", "version": "<number or latest>"},
+  "input":    {"<node channel name>": "<workflow channel name>", ...},
+  "output":   {"<node channel name>": "<workflow channel name>", ...}
+}
+```
+
+Part of a workflow definition: if_node
+
+```json
+{
+  "if":   "<workflow channel name of type bool>",
+  "then": node_use,
+  "else": node_use
 }
 ```
 
 Remarks:
 
-- in channel_binding either "environment_var_value" or "data" are valid. Must match "type".
-- in node_def either "node" or "workflow" are valid.
-- consistency requirements for workflow definitions:
-  - the channel names `<workflow_channel_name>` of the four sections "input", "output", "bind" and "connect" define the channels of the
-    workflow. All names have to be disjunct.
-  - the "input" and "output" sections of workflow define the channels for communication with the environment (super workflows e.g.). The
-    lists are empty for the typical workflow, which is run by the user.
-  - the "bind" section binds constants values to a channel, e.g. files or environment variables.
-  - the "nodes" section defines the nodes, which are glued together in a workflow. To achieve this, the "input" and "output" channels
-    `<node_channel_name>` of the nodes are matched with a `<workflow_channel_name>`. We call this _renaming_.
-  - the renamed channel names are those, which are effective in a workflow.
-  - a workflow must define an acyclic graph of nodes connected by channels. The graph is build using the channels
-    from the "connect" section.
+- all six sections are required, but may be empty.
+- the channel names of the four sections "input", "output", "bind" and "connect" are the channels of the workflow.
+  All names have to be disjoint.
+- "input" and "output" are the channels for the communication with the environment. A workflow with inputs is a
+  sub workflow: it can't be run on its own, only as part of another workflow.
+- "bind" binds a value to a channel: exactly one of "data" (for `file` and `directory`), "environment_var_value"
+  (for `environment_var`) and "value" (for constants).
+- "connect" declares the channels between the nodes.
+- in node_use exactly one of "node" and "workflow" is required. The channels of the node or sub workflow are
+  mapped to workflow channels (_renaming_). All channels of a node should be renamed, a channel that is not renamed
+  is reported in the log.
+- a sub workflow input can be fed by an input of the calling workflow, by a "connect" channel (an output of another
+  node) or by a "bind" channel of the calling workflow (data, environment var value or constant).
+- the nodes and channels must form an acyclic graph. A channel is written by one node at most.
+- **if nodes** are a functional construct: depending on the bool channel "if", either the "then" or the "else"
+  branch is executed. Both branches are a node or a sub workflow. Their inputs may differ, but they must write
+  the same set of workflow channels, with equal type and format. The names of the node channels may differ.
+- runs are evaluated lazily: a node is only executed, if its outputs are needed (a workflow output, or an input of a
+  node that is executed). The branch of an if node that is not selected and the nodes feeding only this branch are
+  skipped.
+- all nodes, channels and workflows may have an optional key "litegraph" with layout data of the workflow editor
+  (`{"pos": [x, y], "state": "expanded" or "collapsed"}`).
 
-Example:
+Example (the condition selects the metric):
 
 ```json
 workflow {
-    "name": "scikit_learn_accuracy",
-    "input": {
-    },
+    "name": "wf_seed_42_with_if",
+    "input": {},
     "output": {
-        "accuracy_result":  { "type": "file", "format": "json" }
+        "accuracy_result": { "type": "file", "format": "json" }
     },
     "bind": {
-        "accuracy_cmd":     { "type": "environment_var", "format": "str", "environment_var_value": "accuracy" },
-        "pred_labels_file": { "type": "file", "format": "json", "data": {"name": "pred_labels", "version": "latest" } },
-        "true_labels_file": { "type": "file", "format": "json", "data": {"name": "true_labels", "version": "latest" } }
+        "seed_setting":              { "type": "int",  "value": 42 },
+        "condition":                 { "type": "bool", "value": true },
+        "metric_accuracy":           { "type": "str",  "value": "accuracy" },
+        "metric_accuracy_precision": { "type": "str",  "value": "accuracy,precision" }
     },
     "connect": {
+        "model_file":       { "type": "file", "format": "any" },
+        "X_test_file":      { "type": "file", "format": "any" },
+        "pred_labels_file": { "type": "file", "format": "any" },
+        "true_labels_file": { "type": "file", "format": "any" }
     },
     "nodes": {
-        "scikit_learn": {
-            "node": {"name": "scikit_learn", "version": "1"},
-            "input": {
-                "cmd":         "accuracy_cmd",
-                "pred_labels": "pred_labels_file",
-                "true_labels": "true_labels_file"
+        "model": {
+            "node": { "name": "nd_train", "version": "1" },
+            "input":  { "seed": "seed_setting" },
+            "output": { "model": "model_file", "X_test": "X_test_file", "true_labels": "true_labels_file" }
+        },
+        "predict": {
+            "node": { "name": "nd_predict", "version": "1" },
+            "input":  { "model": "model_file", "X_test": "X_test_file" },
+            "output": { "pred_labels": "pred_labels_file" }
+        },
+        "metric": {
+            "if": "condition",
+            "then": {
+                "node": { "name": "nd_metric", "version": "1" },
+                "input":  { "cmd": "metric_accuracy", "pred_labels": "pred_labels_file", "true_labels": "true_labels_file" },
+                "output": { "result": "accuracy_result" }
             },
-            "output": {
-                "result": "accuracy_result"
+            "else": {
+                "node": { "name": "nd_metric", "version": "1" },
+                "input":  { "cmd": "metric_accuracy_precision", "pred_labels": "pred_labels_file", "true_labels": "true_labels_file" },
+                "output": { "result": "accuracy_result" }
             }
         }
     }
-}
+};
 ```
 
-## The endpoint `/refine`
+More examples are in `test/test_cmds/**/workflow*.txt`.
 
-Add a workflow to the pl-database by refining an existing workflow. The existing workflow can be modified by substituting either
-node definitions by nodes or (sub-)workflows, or, by replacing a bind channel definition.
+### Refine
+
+Adds a workflow by modifying an existing workflow: nodes can be replaced by other nodes or by sub workflows,
+bind channels can get other bindings.
 
 ```json
 {
-  "name": "<user chosen name of the workflow>",
-  "workflow": {<definition either by "name" and "version", or "hash">},
-  "replace_by_node":     {"<node_name>": replace_node_def, ...},
-  "replace_by_workflow": {"<node_name>": replace_node_def, ...},
-  "replace_bind":        {"<workflow_channel_name>": channel_binding, ...}
+  "name": "<name of the new workflow>",
+  "workflow": {"name": "<name>", "version": "<number or latest>"},
+  "replace_by_node":     {"<node name>": {"name": "<node>", "version": "<number or latest>"}, ...},
+  "replace_by_workflow": {"<node name>": {"name": "<workflow>", "version": "<number or latest>"}, ...},
+  "replace_bind":        {"<workflow channel name>": channel_binding, ...}
 }
 ```
+
+Remarks:
+
+- a replacement must have the same channels as the node it replaces.
+- if nodes can't be replaced.
 
 Example:
 
 ```json
 refine {
-    "name": "scikit_learn_accuracy",
-    "workflow": { "name": "scikit_learn_accuracy", "version": "latest" },
+    "name": "wf_seed_42_precision",
+    "workflow": { "name": "wf_seed_42_with_if", "version": "latest" },
     "replace_bind": {
-      "accuracy_cmd": { "type": "environment_var", "format": "str", "environment_var_value": "accuracy,f1" }
+        "condition": { "type": "bool", "value": false }
     }
-}
+};
 ```
 
-## The endpoint `/run`
+### Run
 
-Run an existing workflow.
+Runs an existing workflow. A workflow with inputs (a sub workflow) can't be run.
 
 ```json
 {
-  "name": "<user chosen name of the workflow to run>",
-  "workflow": {<definition either by "name" and "version", or "hash">}
+  "name": "<name of the run>",
+  "workflow": {"name": "<name>", "version": "<number or latest>"}
 }
 ```
 
@@ -356,7 +361,32 @@ Example:
 
 ```json
 run {
-  "name": "scikit_learn_accuracy",
-  "workflow": { "name": "scikit_learn_accuracy", "version": "latest" }
-}
+  "name": "run_seed_42",
+  "workflow": { "name": "wf_seed_42_with_if", "version": "latest" }
+};
 ```
+
+The stored run contains the metadata `_log` (the log of the execution) and `_channel_bindings` (channel name ->
+hash of the data read and written).
+
+## The REST endpoints of the backend server
+
+General rules:
+
+- all endpoints use the method `POST` and expect a JSON object as payload (except `GET /` and
+  `/data/upload-file`).
+- most endpoints require the header `X-Auth-Token: <token>` (see the column "Token" of the generated reference).
+  The token is returned by `/user/login`.
+- responses are JSON objects with the key `"success"`. On errors the HTTP status is 200 as well, the response is
+  `{"success": false, "error": "<text>"}` (or `"exception"` for unexpected errors).
+- `<referer>` in a request is either `{"hash": "..."}` or `{"name": "...", "version": <number>}`.
+
+All endpoints with request, response and whether they need a token are listed in
+[generated/API-REFERENCE.md](generated/API-REFERENCE.md).
+
+### Upload responses
+
+All `.../upload` endpoints (except `/data/upload-file`) store the definitions one after the other:
+
+- success: `{"success": true, "hash": "<hash of the last definition>", "hashes": [...], "count": n}`
+- error: `{"success": false, "error": "<keyword> <i> of <n> (name \"...\") failed: <reason>. <k> definition(s) stored before.", "hashes": [<hashes stored before the error>], "count": n}`

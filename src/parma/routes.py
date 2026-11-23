@@ -40,17 +40,21 @@ def handle_exception(e: Exception):
 
 @bp.route('/', methods=["GET"])
 def index():
+    """
+    GET /
+    Return the web frontend (static/index.html).
+    """
     return current_app.send_static_file('index.html')
 
 @bp.route('/config', methods=['POST'])
 def config():
     """
-    Returns the ui config from parma_light.yaml.
+    Return the ui config: the section "ui_config" of the yaml property file.
 
     Response JSON:
       {
-        "success":  true,
-        "uiconfig": { <dict, key: ui component name, value: definition of form data> }
+        "success":   true,
+        "ui_config": { <dict, key: ui component name, value: definition of form data> }
       }
     """
     ui_config = current_app.config['config']['ui_config']
@@ -64,10 +68,10 @@ def config():
 @bp.route("/store", methods=["POST"])
 def run_store():
     """
-    Endpoint to store all tables to disk.
+    Store all tables to disk.
 
-    Returns:
-        Response: A Flask JSON response indicating success.
+    Response JSON:
+      { "success": true }
     """
     db.store_tables()
     return jsonify({"success": True})
@@ -76,6 +80,16 @@ def run_store():
 
 @bp.route('/user/login', methods=['POST'])
 def user_login():
+    """
+    POST /user/login
+    Log in. The token returned must be sent as header "X-Auth-Token" with all other requests.
+
+    Request JSON:
+      { "name": "...", "password": "..." }
+
+    Response JSON:
+      { "success": true, "token": "..." }, or { "success": false, "error": "..." } if name or password are wrong
+    """
     data = request.get_json()
     login_name = data.get('name', '').strip()
     password = data.get('password', '')
@@ -85,6 +99,15 @@ def user_login():
 
 @bp.route('/user/logout', methods=['POST'])
 def user_logout():
+    """
+    POST /user/logout
+    Log out: the token becomes invalid. Succeeds without or with an unknown token, too.
+
+    Request header:  X-Auth-Token: <token>
+
+    Response JSON:
+      { "success": true }
+    """
     token = request.headers.get('X-Auth-Token')
     if token:
         user.logout(token)
@@ -93,6 +116,17 @@ def user_logout():
 
 @bp.route('/user/change-password', methods=['POST'])
 def user_change_password():
+    """
+    POST /user/change-password
+    Change the password of the logged in user. The old password is checked, the new one must not be empty.
+
+    Request header:  X-Auth-Token: <token>
+    Request JSON:
+      { "old_password": "...", "new_password": "..." }
+
+    Response JSON:
+      { "success": true/false }
+    """
     calling_user = _get_authenticated_user()
     data = request.get_json()
     old_pw = data.get('old_password', '')
@@ -103,6 +137,17 @@ def user_change_password():
 
 @bp.route('/user/add', methods=['POST'])
 def user_add():
+    """
+    POST /user/add
+    Add one user. Only admins may do this. A user name can't be used twice.
+
+    Request header:  X-Auth-Token: <token>
+    Request JSON:
+      { "name": "...", "admin": true/false, "password": "..." }
+
+    Response JSON:
+      { "success": true, "hash": "<hash of the user>" }
+    """
     calling_user = _get_authenticated_user()
     data = request.get_json()
     dbc.assert_true(bool(data["name"]), {"msg": "INVALID_NAME"})
@@ -132,6 +177,17 @@ def user_upload():
 
 @bp.route('/user/remove', methods=['POST'])
 def user_remove():
+    """
+    POST /user/remove
+    Remove a user. Only admins may do this. Admins can't remove themselves.
+
+    Request header:  X-Auth-Token: <token>
+    Request JSON:
+      { "name": "..." }
+
+    Response JSON:
+      { "success": true/false }
+    """
     calling_user = _get_authenticated_user()
     data = request.get_json()
     user.remove(data.get("name", "").strip(), calling_user)
@@ -343,14 +399,13 @@ def node_upload():
     POST /node/upload
     Store a node or a list of nodes in the datastore.
 
-    Request header:  X-Login-Token: <token>
+    Request header:  X-Auth-Token: <token>
     Request JSON:
-      {
-        "content":  "<raw node text or array of raw node texts, must be json>",
-      }
+      { "content": "<JSON (object or list), or one or more blocks 'node { ... };'>" }
 
     Response JSON:
-      { "success": true/false, ..." }
+      { "success": true/false, "hash": "<hash of the last node>", "hashes": [...], "count": n, ... }
+      see _process_definitions()
     """
     calling_user = _get_authenticated_user()
     payload = request.get_json()
@@ -514,16 +569,15 @@ def workflow_delete():
 def workflow_upload():
     """
     POST /workflow/upload
-    Store a workflow or a list of workflows in the datastore.
+    Store a workflow or a list of workflows in the datastore. Refinements of workflows are accepted too.
 
-    Request header:  X-Login-Token: <token>
+    Request header:  X-Auth-Token: <token>
     Request JSON:
-      {
-        "content":  "<raw workflow text or array of raw workflow texts, must be json>",
-      }
+      { "content": "<JSON (object or list), or one or more blocks 'workflow { ... };' or 'refine { ... };'>" }
 
     Response JSON:
-      { "success": true/false, ..." }
+      { "success": true/false, "hash": "<hash of the last workflow>", "hashes": [...], "count": n, ... }
+      see _process_definitions()
     """
     calling_user = _get_authenticated_user()
     payload = request.get_json()
