@@ -4,7 +4,6 @@ import intern.dbc as dbc
 import intern.helper as h
 import intern.msg as msg
 import intern.database as db
-import component.data as d
 import component.node as n
 
 

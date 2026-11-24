@@ -2,6 +2,8 @@
 # Calls the upload routes of the Parma Light backend from the command line, as the frontend does.
 # Every upload sends the content of a file (one or more definitions, JSON or blocks like 'node { ... };'),
 # except data-file, that sends a plain file without metadata (the backend generates the data definition).
+# The commands snakemake-gen and snakemake-run are no uploads: snakemake-gen generates the Snakefile of a
+# workflow and stores it as data, snakemake-run runs a stored Snakefile on the backend machine.
 #
 # The file content is never put on the command line: the JSON request body is written to a temporary
 # file and sent with "curl --data-binary @file", a plain file is sent as multipart form ("curl -F file=@...").
@@ -11,6 +13,8 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd )"
 
 function short_usage {
     echo "usage: $(basename "$0") [options] <command> <file>     more help: $(basename "$0") help"
+    echo "       $(basename "$0") [options] snakemake-gen <workflow name>:<version>"
+    echo "       $(basename "$0") [options] snakemake-run <snakefile data name>:<version> [<cores>]"
 }
 
 as_admin=0
@@ -18,6 +22,9 @@ login_name=""
 login_password=""
 route=""
 file=""
+ref_name=""
+ref_version=""
+cores=1
 
 function set_command {
     if [[ -n "$route" ]]; then
@@ -41,6 +48,28 @@ while [[ $# -gt 0 ]]; do
         node)       set_command "/node/upload" "$2"; shift 2; break ;;
         workflow)   set_command "/workflow/upload" "$2"; shift 2; break ;;
         run)        set_command "/run/upload" "$2"; shift 2; break ;;
+        snakemake-gen|snakemake-run)
+            if [[ -n "$route" ]]; then
+                echo "Error: only one command allowed. Exit 12"
+                exit 12
+            fi
+            if [[ "$2" != *:* || -z "${2%%:*}" || -z "${2#*:}" ]]; then
+                echo "Error: command $1 needs <name>:<version> (version: a number or latest). Exit 12"
+                exit 12
+            fi
+            route="/workflow/${1/-/_}"
+            ref_name="${2%%:*}"
+            ref_version="${2#*:}"
+            shift 2
+            if [[ "$route" == "/workflow/snakemake_run" && $# -gt 0 ]]; then
+                if [[ ! "$1" =~ ^[1-9][0-9]*$ ]]; then
+                    echo "Error: the number of cores must be a number >= 1, not '$1'. Exit 12"
+                    exit 12
+                fi
+                cores="$1"
+                shift
+            fi
+            break ;;
         help)       cat "$BASE_DIR/curl_help.txt"; exit 0 ;;
         *)          echo "Error: unknown parameter '$1'. Exit 12"; short_usage; exit 12 ;;
     esac
@@ -52,11 +81,11 @@ if [[ $# -gt 0 ]]; then
     exit 12
 fi
 if [[ -z "$route" ]]; then
-    echo "Error: a command (user, data, data-file, node, workflow or run) is required. Exit 12"
+    echo "Error: a command (user, data, data-file, node, workflow, run, snakemake-gen or snakemake-run) is required. Exit 12"
     short_usage
     exit 12
 fi
-if [[ ! -f "$file" ]]; then
+if [[ "$route" != /workflow/snakemake_* && ! -f "$file" ]]; then
     echo "Error: file '$file' not found. Exit 12"
     exit 12
 fi
@@ -123,6 +152,19 @@ function json_value {
     fi
 }
 
+# writes {"name": "$1", "version": "$2"} to file $3. With $4 (a number) "cores": $4 is added
+function make_referer_body {
+    if command -v jq >/dev/null 2>&1; then
+        if [[ -n "$4" ]]; then
+            jq -n --arg n "$1" --arg v "$2" --argjson c "$4" '{name: $n, version: $v, cores: $c}' >"$3"
+        else
+            jq -n --arg n "$1" --arg v "$2" '{name: $n, version: $v}' >"$3"
+        fi
+    else
+        "$python_cmd" -c 'import json,sys; b={"name": sys.argv[1], "version": sys.argv[2]}; b.update({"cores": int(sys.argv[4])} if sys.argv[4] else {}); json.dump(b, open(sys.argv[3], "w", encoding="utf-8"))' "$1" "$2" "$3" "$4"
+    fi
+}
+
 # pretty prints the JSON in file $1
 function json_print {
     if command -v jq >/dev/null 2>&1; then
@@ -176,6 +218,13 @@ fi
 
 if [[ "$route" == "/data/upload-file" ]]; then
     post_file "$route" "$file" "$tmp_dir/response.json" "$token"
+elif [[ "$route" == "/workflow/snakemake_gen" ]]; then
+    make_referer_body "$ref_name" "$ref_version" "$tmp_dir/body.json"
+    post "$route" "$tmp_dir/body.json" "$tmp_dir/response.json" "$token"
+elif [[ "$route" == "/workflow/snakemake_run" ]]; then
+    # returns when snakemake has finished
+    make_referer_body "$ref_name" "$ref_version" "$tmp_dir/body.json" "$cores"
+    post "$route" "$tmp_dir/body.json" "$tmp_dir/response.json" "$token"
 else
     make_content_body "$file" "$tmp_dir/body.json"
     post "$route" "$tmp_dir/body.json" "$tmp_dir/response.json" "$token"
@@ -187,7 +236,13 @@ echo '{}' >"$tmp_dir/empty.json"
 post "/user/logout" "$tmp_dir/empty.json" "$tmp_dir/logout_response.json" "$token"
 
 if [[ "$success" != "true" ]]; then
-    echo "Error: upload of '$file' to $route failed. Exit 12"
+    if [[ "$route" == "/workflow/snakemake_gen" ]]; then
+        echo "Error: generating the Snakefile for workflow '$ref_name:$ref_version' failed. Exit 12"
+    elif [[ "$route" == "/workflow/snakemake_run" ]]; then
+        echo "Error: running the Snakefile '$ref_name:$ref_version' failed. Exit 12"
+    else
+        echo "Error: upload of '$file' to $route failed. Exit 12"
+    fi
     exit 12
 fi
 exit 0

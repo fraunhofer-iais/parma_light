@@ -1,5 +1,3 @@
-import sys
-import os
 import pytest
 
 import intern.dbc as dbc

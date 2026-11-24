@@ -344,6 +344,8 @@ while [[ $# -gt 0 ]]; do
                         ./curl.sh workflow test/test_cmds/sklearn/workflowsub.txt
                         ./curl.sh workflow test/test_cmds/sklearn/workflowif.txt
                         ./curl.sh run test/test_cmds/sklearn/run.txt
+                        ./curl.sh snakemake-gen wf_accuracy_seed_42:1
+                        ./curl.sh snakemake-run snakefile_wf_accuracy_seed_42_1:1
                     fi
                     if [[ "$UPLOAD_ARRAY" == 1 ]]; then
                         echo 'upload array related information for testing and demonstration'

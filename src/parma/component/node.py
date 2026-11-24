@@ -1,6 +1,3 @@
-import os
-import stat
-import subprocess
 import intern.dbc as dbc
 import intern.helper as h
 import intern.database as db

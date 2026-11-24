@@ -3,7 +3,7 @@ name = "parma-light"
 version = "0.1.0"
 description = "A demonstrator of the PARMA concept"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "debugpy>=1.8.17",
     "dotenv>=0.9.9",
@@ -62,3 +62,9 @@ optional_dependencies = [] # to load extras from [project.optional-dependencies]
 
 [tool.liccheck.authorized_packages]
 uuid = "1.30"
+
+[dependency-groups]
+dev = [
+    "pytest-cov>=7.1.0",
+    "snakemake>=9",
+]

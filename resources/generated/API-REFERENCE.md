@@ -28,6 +28,7 @@ All endpoints except `GET /` use the method `POST` and return a JSON object with
 | [`/run/data`](#rundata) | POST | yes | Return the data entries of a run: those referenced in the metadata of the run under "_channel_bindings" (channel -> hash of data). |
 | [`/run/get`](#runget) | POST | yes | Return one run. |
 | [`/run/list`](#runlist) | POST | yes | Return all runs known to the backend. |
+| [`/run/register`](#runregister) | POST | yes | Store the run record of a workflow executed by an external orchestrator (e.g. |
 | [`/run/upload`](#runupload) | POST | yes | Execute all runs defined in the uploaded content, one after the other. |
 | [`/store`](#store) | POST | no | Store all tables to disk. |
 | [`/user/add`](#useradd) | POST | yes | Add one user. |
@@ -43,6 +44,8 @@ All endpoints except `GET /` use the method `POST` and return a JSON object with
 | [`/workflow/litegraph`](#workflowlitegraph) | POST | yes | Return a stored workflow converted to a serialized LiteGraph graph for the workflow editor. |
 | [`/workflow/run`](#workflowrun) | POST | yes | Runs a stored workflow. |
 | [`/workflow/save`](#workflowsave) | POST | yes | Convert a LiteGraph graph from the workflow editor to the backend format and store it as workflow. |
+| [`/workflow/snakemake_gen`](#workflowsnakemake_gen) | POST | yes | Generate a Snakefile that executes a stored workflow with Snakemake (only workflows with docker nodes) and store it as data named "snakefile_<workflow name>_<workflow version>" (for "latest" the version found is used). |
+| [`/workflow/snakemake_run`](#workflowsnakemake_run) | POST | yes | Run a Snakefile stored as data (see /workflow/snakemake_gen) with Snakemake on the backend machine. |
 | [`/workflow/upload`](#workflowupload) | POST | yes | Store a workflow or a list of workflows in the datastore. |
 
 ### `/`
@@ -105,10 +108,12 @@ Store a plain file (no metadata) as data. The data definition is generated:
 { "name": <file name, '.' replaced by '_', prefixed by '_' if it starts with a digit>,
 "type": "file", "storage": "platform", "hash": "true", "format": "any", "user_path": <file name> }
 Example: "1.data.csv" -> "_1_data_csv"
+If the optional form field "name" is given, it is used as data name (e.g. by an exported Snakefile, that
+stores outputs under the channel name like a run does).
 
 ```text
 Request header:  X-Auth-Token: <token>
-Request: multipart/form-data with the part "file"
+Request: multipart/form-data with the part "file" and the optional field "name"
 
 Response JSON:
   { "success": true/false, "hash": "...", "name": "..." }
@@ -248,6 +253,26 @@ Only a summary of each run is returned, the complete run is returned by /run/get
 
 Response JSON:
   { "success": true, "runs": [ {"_hash", "name", "_version", "_date"}, ... ] }
+```
+
+### `/run/register`
+
+Store the run record of a workflow executed by an external orchestrator (e.g. an exported Snakefile, see
+/workflow/snakemake_gen and /workflow/snakemake_run). The record looks like the record of a run executed
+by the backend ("_executor" is "builtin" there). The log of the orchestrator itself is stored as
+"_log_<executor>" (e.g. "_log_snakemake"). The data written by the run must have been stored before
+(e.g. by /data/upload-file). The tables are persisted immediately.
+
+```text
+Request header:  X-Auth-Token: <token>
+Request JSON:
+    { "workflow": { "hash": "<hash of the workflow>" }, "success": true/false, "log": [ "...", ... ],
+      "channel_bindings": { "<channel>": "<hash of data>", ... }, "executor": "snakemake",
+      "name": "<run name, optional, default: the workflow name>",
+      "executor_log": [ "<line of the orchestrator log>", ... ] (optional) }
+
+Response JSON:
+    { "success": true/false, "hash": "<hash of the run>", "name": "...", "version": <version> }
 ```
 
 ### `/run/upload`
@@ -445,6 +470,44 @@ Request JSON:
 
 Response JSON:
     { "success": true/false, "hash": "...", "version": <version> }
+```
+
+### `/workflow/snakemake_gen`
+
+Generate a Snakefile that executes a stored workflow with Snakemake (only workflows with docker nodes)
+and store it as data named "snakefile_<workflow name>_<workflow version>" (for "latest" the version
+found is used). The Snakefile is not returned, get it from the data store (e.g. /data/content) or
+run it with /workflow/snakemake_run. A run of the Snakefile stores its run record with the name
+"run_snakefile_<workflow name>_<workflow version>" and the snakemake log as "_log_snakemake".
+
+```text
+Request header:  X-Auth-Token: <token>
+Request JSON:
+    { "name": "<workflow name>", "version": "<number or latest>" }
+Name and version are required, a hash is not accepted.
+
+Response JSON:
+    { "success": true/false, "hash": "<hash of the data>", "name": "snakefile_<name>_<version>",
+      "version": <version of the data>, "workflow": { "hash": "...", "name": "...", "version": <version> } }
+```
+
+### `/workflow/snakemake_run`
+
+Run a Snakefile stored as data (see /workflow/snakemake_gen) with Snakemake on the backend machine. The
+request returns when Snakemake has finished. The Snakefile stores the outputs and the run record (with the
+run log) by the REST API, using the token of this request. Thus the backend must serve requests in parallel
+(server "waitress"; not "development_debug"). Not available if the backend runs in a container.
+
+```text
+Request header:  X-Auth-Token: <token>
+Request JSON:
+    { "name": "<name of the Snakefile data>", "version": "<number or latest>", "cores": <number, default 1> }
+Name and version are required, a hash is not accepted.
+
+Response JSON:
+    { "success": true/false, "exit_code": <exit code of snakemake>,
+      "run": { "hash": "...", "name": "...", "version": <version> } or null if no run record was stored,
+      "output": [ "<last lines of the snakemake output>", ... ] }
 ```
 
 ### `/workflow/upload`

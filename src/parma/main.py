@@ -2,8 +2,6 @@ import os
 from pathlib import Path
 import argparse
 import logging
-import platform
-import sys
 
 import intern.helper as h
 import intern.msg as msg

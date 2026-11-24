@@ -3,6 +3,7 @@ Please read the README.md of the parma_light git repository.
 
 curl.sh calls the upload routes of the PARMA light backend from the command line, as the frontend does.
 Every call logs in, uploads the content of one file, prints the JSON response and logs out.
+The commands snakemake-gen and snakemake-run instead generate a Snakefile and run it.
 Exit code 0 on success, 12 otherwise.
 
   curl.sh [options] <command> <file>
@@ -30,6 +31,27 @@ Commands (exactly one):
   run <file>
     execute all runs defined in <file>. Route /run/upload.
     Returns when the last run has finished, stops at the first failing run.
+
+  snakemake-gen <workflow name>:<version>
+    generate the Snakefile of a stored workflow and store it as data named
+    'snakefile_<workflow name>_<version>'. Route /workflow/snakemake_gen. No upload.
+    The version is required: a number or 'latest' (then the data name contains the version found).
+    Only workflows with docker nodes can be exported. The response contains the hash, name and version
+    of the data, not the Snakefile.
+
+  snakemake-run <snakefile data name>:<version> [<cores>]
+    run a Snakefile stored by snakemake-gen with Snakemake on the backend machine, using <cores> cores
+    (default 1). Route /workflow/snakemake_run. Returns when Snakemake has finished. The response contains
+    the stored run record (hash, name, version), the exit code and the last lines of the Snakemake output.
+    Not available if the backend runs in a container.
+
+  Running a Snakefile stores the outputs of every rule as data and at the end a run record with the run
+  log (property "_executor": "snakemake", runs started by 'curl.sh run' have "_executor": "builtin") in
+  PARMA. The run is named 'run_snakefile_<workflow name>_<version>', the log of Snakemake itself is stored
+  in the run record as "_log_snakemake". If you run
+  a Snakefile yourself (e.g. 'snakemake --cores 4 -s <file>'), it uses the REST API with the same
+  environment variables PARMA_URL, PARMA_USER and PARMA_PASSWORD and stops before any job is executed
+  if one is missing.
 
   A <file> contains one or more definitions, either JSON or blocks like 'node { ... };'.
   See the directories in 'test/test_cmds' for examples.
@@ -72,6 +94,8 @@ Examples:
     ./curl.sh node test/test_cmds/sklearn/node.txt
     ./curl.sh run test/test_cmds/sklearn/run.txt
     ./curl.sh data-file my.data.csv
+    ./curl.sh snakemake-gen wf_seed_42_with_if:1
+    ./curl.sh snakemake-run snakefile_wf_seed_42_with_if_1:latest 4
 
   with the real passwords, in a subshell:
     ( source .env; export PARMA_URL=http://localhost:8080; ./curl.sh node my_nodes.txt )

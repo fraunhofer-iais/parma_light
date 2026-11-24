@@ -1375,6 +1375,11 @@ var LIST_ICONS = {
   content: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   edit: '<path d="M17 3l4 4L8 20H4v-4L17 3z"/><path d="M14 6l4 4"/>',
   run: '<polygon points="7 4 20 12 7 20 7 4" fill="currentColor"/>',
+  // a coiled snake with raised head (eye, forked tongue): run with Snakemake
+  snake:
+    '<path d="M21 20H7a3 3 0 0 1 0-6h10a3 3 0 0 0 0-6c-1.2 0-2-.9-2-2"/>' +
+    '<ellipse cx="12.6" cy="4.3" rx="3" ry="2.1"/><circle cx="12" cy="3.8" r=".6" fill="currentColor" stroke="none"/>' +
+    '<path d="M9.6 4.3H7.8M7.8 4.3 6.6 3.2M7.8 4.3 6.6 5.4" stroke-width="1.6"/>',
   download: '<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/>',
   delete:
     '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>',
@@ -2204,8 +2209,27 @@ function _renderWorkflowList(workflows) {
         };
       })(hash, nameVer),
     );
+    // run with Snakemake: generate the Snakefile, then run it
+    var snakeBtn = document.createElement("button");
+    snakeBtn.type = "button";
+    snakeBtn.className = "btn btn-success btn-sm";
+    _setListIcon(snakeBtn, "snake", "Snakemake run");
+    if (runBtn.disabled) {
+      snakeBtn.disabled = true;
+      snakeBtn.title = runBtn.title;
+    }
+    snakeBtn.addEventListener(
+      "click",
+      (function (name, version, nv) {
+        return function () {
+          handleWorkflowSnakemakeRun(name, version, nv, this);
+        };
+      })(workflow.name, workflow._version, nameVer),
+    );
+
     tdActions.appendChild(editBtn);
-    tdActions.appendChild(runBtn); // order: Metadata, Edit, Run, Download, Delete
+    tdActions.appendChild(runBtn);
+    tdActions.appendChild(snakeBtn); // order: Metadata, Edit, Run, Snakemake run, Download, Delete
 
     var dlBtn = document.createElement("button");
     dlBtn.type = "button";
@@ -2244,8 +2268,10 @@ function _renderWorkflowList(workflows) {
   container.appendChild(table);
 }
 
-// Starts a run of the workflow in the backend. The request returns when the run has finished
-function handleWorkflowRun(hash, nameVer, button) {
+// Common part of the run buttons: disables the button and shows a spinner, shows a toast with the seconds
+// since the start (label: e.g. "Run of wf:1") and reports the result. task(setLabel) returns a promise of
+// the result of the last backend call ({success, name, version, ...}); setLabel changes the toast label.
+function _runWithProgress(button, label, task) {
   if (!_loginToken) {
     showToast("Please log in first", "error");
     return;
@@ -2263,16 +2289,21 @@ function handleWorkflowRun(hash, nameVer, button) {
     button.textContent = "Running…";
   }
   // the toast shows the seconds since the start, updated every second while the run is active
-  var owner = "run-" + hash + "-" + Date.now();
+  var owner = "run-" + Date.now() + "-" + Math.random();
   var start = Date.now();
   var seconds = function () {
     return Math.floor((Date.now() - start) / 1000);
   };
-  _showOwnedToast(owner, "Run of " + nameVer + " running: 0 s", "info");
-  var timer = setInterval(function () {
-    _updateOwnedToast(owner, "Run of " + nameVer + " running: " + seconds() + " s");
-  }, 1000);
-  apiCall("POST", "/workflow/run", { hash: hash })
+  var showProgress = function () {
+    _updateOwnedToast(owner, label + " running: " + seconds() + " s");
+  };
+  _showOwnedToast(owner, label + " running: 0 s", "info");
+  var timer = setInterval(showProgress, 1000);
+  var setLabel = function (newLabel) {
+    label = newLabel;
+    showProgress();
+  };
+  task(setLabel)
     .then(function (result) {
       if (result.success) {
         showToast(
@@ -2280,10 +2311,7 @@ function handleWorkflowRun(hash, nameVer, button) {
           "success",
         );
       } else {
-        showToast(
-          _resultError(result, "Run of " + nameVer + " failed") + " (after " + seconds() + " s)",
-          "error",
-        );
+        showToast(_resultError(result, label + " failed") + " (after " + seconds() + " s)", "error");
       }
     })
     .catch(function (e) {
@@ -2296,6 +2324,39 @@ function handleWorkflowRun(hash, nameVer, button) {
       button.innerHTML = content;
       button.title = title;
     });
+}
+
+// Starts a run of the workflow in the backend. The request returns when the run has finished
+function handleWorkflowRun(hash, nameVer, button) {
+  _runWithProgress(button, "Run of " + nameVer, function () {
+    return apiCall("POST", "/workflow/run", { hash: hash });
+  });
+}
+
+// Runs the workflow with Snakemake in the backend, by two backend calls: generate the Snakefile (stored as
+// data), then run it. The second request returns when Snakemake has finished
+function handleWorkflowSnakemakeRun(name, version, nameVer, button) {
+  _runWithProgress(button, "Generating the Snakefile of " + nameVer, function (setLabel) {
+    return apiCall("POST", "/workflow/snakemake_gen", { name: name, version: String(version) }).then(
+      function (generated) {
+        if (!generated.success) return generated;
+        var snakefile = generated.name + ":" + generated.version;
+        setLabel("Snakemake run of " + snakefile);
+        return apiCall("POST", "/workflow/snakemake_run", {
+          name: generated.name,
+          version: String(generated.version),
+        }).then(function (result) {
+          if (!result.success) {
+            // the error of the route, or the last line of the snakemake output
+            var output = result.output || [];
+            if (!result.error && output.length) result.error = output[output.length - 1];
+            return result;
+          }
+          return { success: true, name: result.run.name, version: result.run.version };
+        });
+      },
+    );
+  });
 }
 
 function openWorkflowMetadataView(workflow) {

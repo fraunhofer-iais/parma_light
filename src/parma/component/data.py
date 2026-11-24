@@ -6,7 +6,6 @@ import shutil
 import intern.dbc as dbc
 import intern.helper as h
 import intern.database as db
-import intern.view as v
 import intern.msg as msg
 
 

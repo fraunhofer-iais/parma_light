@@ -38,6 +38,7 @@ messages_en: Dict[str, str] = {
     "INVALID_MESSAGE": "invalid error processing for error \"{exception}\".",
     "INVALID_NAME": "the name is invalid",
     "INVALID_PASSWORD": "the password is invalid",
+    "INVALID_VERSION": "the version is missing or invalid. Use a number or 'latest'",
     "INVALID_PROPERTY": "the yaml property \"{property}\" is invalid. The value is set to \"{replacement}\"",
     "INVALID_SCHEMA": "invalid JSON, Jsonschema error. \"{schema_error}\".",
     "INVALID_WORKFLOW": "the workflow is invalid. Reason: \"{reason}\". Please check the workflow definition.",

@@ -28,7 +28,6 @@ import json
 import re
 
 import intern.dbc as dbc
-import intern.database as db
 import component.node as n
 import component.data as d
 import component.workflow as wf

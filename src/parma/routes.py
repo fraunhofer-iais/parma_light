@@ -17,6 +17,7 @@ import component.data as d
 import component.workflow as wf
 import component.run as run
 import component.litegraph as lg
+import component.external_orchestrator as eo
 
 bp = Blueprint('main', __name__)
 
@@ -239,9 +240,11 @@ def data_upload_file():
       { "name": <file name, '.' replaced by '_', prefixed by '_' if it starts with a digit>,
         "type": "file", "storage": "platform", "hash": "true", "format": "any", "user_path": <file name> }
     Example: "1.data.csv" -> "_1_data_csv"
+    If the optional form field "name" is given, it is used as data name (e.g. by an exported Snakefile, that
+    stores outputs under the channel name like a run does).
 
     Request header:  X-Auth-Token: <token>
-    Request: multipart/form-data with the part "file"
+    Request: multipart/form-data with the part "file" and the optional field "name"
 
     Response JSON:
       { "success": true/false, "hash": "...", "name": "..." }
@@ -251,7 +254,7 @@ def data_upload_file():
     if uploaded is None or not uploaded.filename:
         return jsonify({"success": False, "error": "no file uploaded (multipart part 'file' missing)"})
     file_name = os.path.basename(uploaded.filename.replace('\\', '/'))
-    data_name = file_name.replace('.', '_')
+    data_name = request.form.get('name') or file_name.replace('.', '_')
     if data_name[:1].isdigit():
         data_name = "_" + data_name  # data names must not start with a digit
     definition = {
@@ -634,6 +637,87 @@ def workflow_litegraph():
                     "version": workflow_def.get("_version"), "graph": graph})
 
 
+def _name_version_referer(payload: dict) -> dict:
+    """the referer of a request, that requires name and version (a hash is not accepted)"""
+    dbc.assert_true(bool(payload.get("name")), {"msg": "INVALID_NAME"})
+    dbc.assert_true(payload.get("version") not in (None, ""), {"msg": "INVALID_VERSION"})
+    referer = {"name": str(payload["name"]), "version": str(payload["version"])}
+    h.validate_user_input(referer, "name_version")
+    return referer
+
+
+@bp.route('/workflow/snakemake_gen', methods=['POST'])
+def workflow_snakemake_gen():
+    """
+    POST /workflow/snakemake_gen
+    Generate a Snakefile that executes a stored workflow with Snakemake (only workflows with docker nodes)
+    and store it as data named "snakefile_<workflow name>_<workflow version>" (for "latest" the version
+    found is used). The Snakefile is not returned, get it from the data store (e.g. /data/content) or
+    run it with /workflow/snakemake_run. A run of the Snakefile stores its run record with the name
+    "run_snakefile_<workflow name>_<workflow version>" and the snakemake log as "_log_snakemake".
+
+    Request header:  X-Auth-Token: <token>
+    Request JSON:
+        { "name": "<workflow name>", "version": "<number or latest>" }
+    Name and version are required, a hash is not accepted.
+
+    Response JSON:
+        { "success": true/false, "hash": "<hash of the data>", "name": "snakefile_<name>_<version>",
+          "version": <version of the data>, "workflow": { "hash": "...", "name": "...", "version": <version> } }
+    """
+    calling_user = _get_authenticated_user()
+    payload = request.get_json() or {}
+    workflow_hash = wf.get_workflow_hash_by_referer(_name_version_referer(payload))
+    workflow_def = wf.get_workflow_by_hash(workflow_hash)
+    workflow_version = workflow_def.get("_version", 1)
+    data_name = f"snakefile_{workflow_def['name']}_{workflow_version}"
+    content = eo.parma2snakemake({"hash": workflow_hash}, run_name=f"run_{data_name}")
+
+    definition = {"name": data_name, "type": "file", "storage": "platform", "hash": "true",
+                  "format": "any", "user_path": data_name}
+    tmp_dir = tempfile.mkdtemp(prefix="parma_snakefile_")
+    try:
+        tmp_path = os.path.join(tmp_dir, "Snakefile")
+        with open(tmp_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(content)
+        data_hash = d.add_data(definition, calling_user, source_path=tmp_path)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+    return jsonify({"success": True, "hash": data_hash, "name": data_name,
+                    "version": d.get_data_by_hash(data_hash).get("_version"),
+                    "workflow": {"hash": workflow_hash, "name": workflow_def["name"], "version": workflow_version}})
+
+
+@bp.route('/workflow/snakemake_run', methods=['POST'])
+def workflow_snakemake_run():
+    """
+    POST /workflow/snakemake_run
+    Run a Snakefile stored as data (see /workflow/snakemake_gen) with Snakemake on the backend machine. The
+    request returns when Snakemake has finished. The Snakefile stores the outputs and the run record (with the
+    run log) by the REST API, using the token of this request. Thus the backend must serve requests in parallel
+    (server "waitress"; not "development_debug"). Not available if the backend runs in a container.
+
+    Request header:  X-Auth-Token: <token>
+    Request JSON:
+        { "name": "<name of the Snakefile data>", "version": "<number or latest>", "cores": <number, default 1> }
+    Name and version are required, a hash is not accepted.
+
+    Response JSON:
+        { "success": true/false, "exit_code": <exit code of snakemake>,
+          "run": { "hash": "...", "name": "...", "version": <version> } or null if no run record was stored,
+          "output": [ "<last lines of the snakemake output>", ... ] }
+    """
+    _get_authenticated_user()
+    payload = request.get_json() or {}
+    referer = _name_version_referer(payload)
+    cores = payload.get("cores", 1)
+    dbc.assert_true(isinstance(cores, int) and not isinstance(cores, bool) and cores >= 1,
+                    {"msg": "SYSTEM_ERROR", "details": f"\"cores\" must be a number >= 1, not {cores!r}"})
+    port = (current_app.config.get('config') or {}).get('server', {}).get('port', 8080)
+    result = eo.run_snakefile(referer, cores, f"http://127.0.0.1:{port}", request.headers.get('X-Auth-Token'))
+    return jsonify(result)
+
+
 @bp.route('/workflow/run', methods=['POST'])
 def workflow_run():
     """
@@ -744,6 +828,39 @@ def run_upload():
     definitions = h.parse_upload_content(content, "run")
     return _process_definitions(definitions, calling_user,
                                 {"run": lambda run_def, user: run.run_workflow(run_def, {}, user)})
+
+
+@bp.route('/run/register', methods=['POST'])
+def run_register():
+    """
+    POST /run/register
+    Store the run record of a workflow executed by an external orchestrator (e.g. an exported Snakefile, see
+    /workflow/snakemake_gen and /workflow/snakemake_run). The record looks like the record of a run executed
+    by the backend ("_executor" is "builtin" there). The log of the orchestrator itself is stored as
+    "_log_<executor>" (e.g. "_log_snakemake"). The data written by the run must have been stored before
+    (e.g. by /data/upload-file). The tables are persisted immediately.
+
+    Request header:  X-Auth-Token: <token>
+    Request JSON:
+        { "workflow": { "hash": "<hash of the workflow>" }, "success": true/false, "log": [ "...", ... ],
+          "channel_bindings": { "<channel>": "<hash of data>", ... }, "executor": "snakemake",
+          "name": "<run name, optional, default: the workflow name>",
+          "executor_log": [ "<line of the orchestrator log>", ... ] (optional) }
+
+    Response JSON:
+        { "success": true/false, "hash": "<hash of the run>", "name": "...", "version": <version> }
+    """
+    calling_user = _get_authenticated_user()
+    payload = request.get_json() or {}
+    workflow_referer = payload.get("workflow") or {}
+    dbc.assert_true(isinstance(workflow_referer, dict) and workflow_referer.get("hash"), {"msg": "INVALID_COMMAND"})
+    workflow_hash = wf.get_workflow_hash_by_referer({"hash": str(workflow_referer["hash"]).strip()})
+    run_hash = run.register_external_run(workflow_hash, payload.get("success"), payload.get("log", []),
+                                         payload.get("channel_bindings", {}), str(payload.get("executor", "snakemake")),
+                                         calling_user, run_name=payload.get("name"),
+                                         executor_log=payload.get("executor_log"))
+    run_def = run.get_run_by_hash(run_hash)
+    return jsonify({"success": True, "hash": run_hash, "name": run_def["name"], "version": run_def.get("_version")})
 
 
 @bp.route('/workflow/save', methods=['POST'])

@@ -5,7 +5,6 @@ import json
 import datetime
 from pathlib import Path
 import re
-import secrets
 import jsonschema
 import yaml
 from python_on_whales import docker

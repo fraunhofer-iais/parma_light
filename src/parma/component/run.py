@@ -1,7 +1,7 @@
 import os
 import copy
+import re
 import shlex
-import stat
 from python_on_whales import docker
 import subprocess
 import logging
@@ -99,6 +99,7 @@ def run_workflow(run_def: dict, channel_bindings: dict, logged_in_user: str) -> 
     workflow = {}
     run["name"] = run_def["name"]
     run["_hash_of_workflow"] = hash_of_workflow
+    run["_executor"] = "builtin"
     _add_to_log(run, f"*** workflow {run['name']} started ***", log_message=True)
     h.check_that_node_channels_are_bound(wf.used_nodes(run["nodes"]), n.get_node_by_hash, wf.get_workflow_by_hash)
 
@@ -122,6 +123,56 @@ def run_workflow(run_def: dict, channel_bindings: dict, logged_in_user: str) -> 
     else:
         details = f"*** workflow {run['name']} with hash {db.shrink_hash(hash_of_run)} cancelled due to errors ***"
         dbc.raise_error({"msg": "SYSTEM_ERROR", "details": details}, user_error=False)
+
+
+def register_external_run(workflow_hash: str, success: bool, log: list, channel_bindings: dict, executor: str,
+                          logged_in_user: str, run_name: str = None, executor_log: list = None) -> str:
+    """
+    Stores the run record of a workflow executed by an external orchestrator (e.g. an exported Snakefile).
+    The record is built like the one of run_workflow: a copy of the workflow with "name", "_hash_of_workflow",
+    "_log", "_channel_bindings", "_success" and "_executor". The log of the orchestrator itself is stored as
+    "_log_<executor>" (e.g. "_log_snakemake"). The tables are persisted immediately.
+
+    Args:
+        workflow_hash (str): The hash of the executed workflow.
+        success (bool): Whether the run was successful.
+        log (list[str]): The run log (in the style of run_workflow).
+        channel_bindings (dict): channel -> hash of the data entry written to the channel.
+        executor (str): The external orchestrator, e.g. "snakemake".
+        logged_in_user (str): The user performing the operation.
+        run_name (str): The name of the run. Default: the name of the workflow.
+        executor_log (list[str]): The log of the orchestrator (e.g. the output of snakemake). Optional.
+
+    Returns:
+        str: The hash of the stored run entry.
+    """
+    workflow = wf.get_workflow_by_hash(workflow_hash)
+    run_name = run_name or workflow["name"]
+    dbc.assert_true(isinstance(run_name, str) and re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", run_name),
+                    {"msg": "INVALID_NAME"})
+    dbc.assert_true(isinstance(executor, str) and re.fullmatch(r"[a-z][a-z0-9_]*", executor) and executor != "builtin",
+                    {"msg": "SYSTEM_ERROR", "details": f"invalid executor {executor!r}"})
+    dbc.assert_true(isinstance(success, bool), {"msg": "SYSTEM_ERROR", "details": "\"success\" must be a bool"})
+    for name, lines in (("log", log), ("executor_log", executor_log or [])):
+        dbc.assert_true(isinstance(lines, list) and all(isinstance(line, str) for line in lines),
+                        {"msg": "SYSTEM_ERROR", "details": f"\"{name}\" must be a list of strings"})
+    dbc.assert_true(isinstance(channel_bindings, dict),
+                    {"msg": "SYSTEM_ERROR", "details": "\"channel_bindings\" must be an object"})
+    for channel, hash_of_data in channel_bindings.items():
+        dbc.assert_true(isinstance(hash_of_data, str) and hash_of_data in db._data,
+                        {"msg": "NOT_FOUND", "kind": f"data of channel {channel}", "name": str(hash_of_data)})
+    run = copy.deepcopy(workflow)
+    run["name"] = run_name
+    run["_hash_of_workflow"] = workflow_hash
+    run["_executor"] = executor
+    run["_log"] = list(log)
+    if executor_log is not None:
+        run[f"_log_{executor}"] = list(executor_log)
+    run["_channel_bindings"] = dict(channel_bindings)
+    run["_success"] = success
+    hash_of_run = db.enrich_and_store_in_table(db._run, run, logged_in_user)
+    db.store_tables()
+    return hash_of_run
 
 
 def _run_nodes_lazily(run: dict, channel_bindings: dict, logged_in_user: str) -> bool:
