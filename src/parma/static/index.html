@@ -589,6 +589,12 @@
               >
                 Run
               </button>
+              <div class="lg-zoom" role="group" aria-label="Zoom">
+                <button type="button" class="btn btn-secondary btn-sm" title="Zoom out" aria-label="Zoom out" onclick="lgZoomBy(1 / 1.2)">&minus;</button>
+                <button type="button" id="lg-zoom-value" class="btn btn-secondary btn-sm lg-zoom-value" title="Zoom 100%" onclick="lgZoomTo(1)">100%</button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Zoom in" aria-label="Zoom in" onclick="lgZoomBy(1.2)">+</button>
+                <button type="button" class="btn btn-secondary btn-sm" title="Show all nodes" onclick="lgZoomFit()">Fit</button>
+              </div>
             </div>
           </div>
           <div id="panel-workflow-upload" class="panel">

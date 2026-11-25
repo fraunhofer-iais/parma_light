@@ -291,6 +291,16 @@ body {
 .df-input.lg-toolbar-name {
   width: 220px;
 }
+.lg-zoom {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.lg-zoom-value {
+  min-width: 56px;
+  font-variant-numeric: tabular-nums;
+}
 .canvas-theme-btn.active {
   background: var(--c-primary);
   color: #fff;

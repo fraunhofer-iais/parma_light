@@ -2783,6 +2783,59 @@ function _lgResizeCanvas() {
   }
 }
 
+// Zooms and pans the editor such that all nodes are visible (zoom at most 100%)
+function _lgFitToNodes() {
+  if (!_lgCanvas || !_lgGraph) return;
+  _lgResizeCanvas();
+  var nodes = _lgGraph._nodes || [];
+  var cw = _lgCanvas.canvas.width;
+  var ch = _lgCanvas.canvas.height;
+  if (nodes.length === 0 || cw <= 0 || ch <= 0) return;
+  var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(function (node) {
+    var collapsed = node.flags && node.flags.collapsed;
+    var w = collapsed ? node._collapsed_width || LiteGraph.NODE_COLLAPSED_WIDTH : node.size[0];
+    var h = collapsed ? 0 : node.size[1];
+    minX = Math.min(minX, node.pos[0]);
+    minY = Math.min(minY, node.pos[1] - LiteGraph.NODE_TITLE_HEIGHT);
+    maxX = Math.max(maxX, node.pos[0] + w);
+    maxY = Math.max(maxY, node.pos[1] + h);
+  });
+  var margin = 40;
+  var scale = Math.min((cw - 2 * margin) / (maxX - minX), (ch - 2 * margin) / (maxY - minY), 1);
+  scale = Math.max(scale, 0.3);
+  var ds = _lgCanvas.ds;
+  ds.scale = scale;
+  // canvas = (graph + offset) * scale: the bounding box starts at the top left corner (plus margin)
+  ds.offset[0] = margin / scale - minX;
+  ds.offset[1] = margin / scale - minY;
+  _lgCanvas.setDirty(true, true);
+}
+
+// -- Zoom bar below the editor ---------------------------------------------------
+// "-" and "+" zoom around the center of the canvas, the percentage resets to 100%, "Fit" shows all
+// nodes. The percentage is updated on every redraw, thus zooming with the mouse wheel is shown, too.
+function lgZoomTo(scale) {
+  if (!_lgCanvas) return;
+  _lgCanvas.ds.changeScale(scale); // without center: zooms around the center of the canvas
+  _lgCanvas.setDirty(true, true);
+}
+
+function lgZoomBy(factor) {
+  if (_lgCanvas) lgZoomTo(_lgCanvas.ds.scale * factor);
+}
+
+function lgZoomFit() {
+  _lgFitToNodes();
+}
+
+function _lgShowZoom() {
+  var el = document.getElementById("lg-zoom-value");
+  if (!el || !_lgCanvas) return;
+  var text = Math.round(_lgCanvas.ds.scale * 100) + "%";
+  if (el.textContent !== text) el.textContent = text;
+}
+
 function _refreshLitegraphNodes() {
   if (typeof LiteGraph === "undefined") return Promise.resolve(false);
   return apiCall("POST", "/nodes/litegraph", {})
@@ -2863,7 +2916,7 @@ function _loadWorkflowIntoEditor(referer, nameVer) {
       _lgGraph.configure(result.graph);
       _setWorkflowEditorTitle(result.name, result.version);
       _markWorkflowEditorSaved(result.hash, result.name + ":" + result.version);
-      _lgCanvas.setDirty(true, true);
+      _lgFitToNodes();
       return true;
     })
     .catch(function (e) {
@@ -2949,7 +3002,7 @@ function _popWorkflowEditorStack() {
   if (title) title.textContent = state.title;
   _wfEditorSaved = state.saved;
   _updateWorkflowEditorButtons();
-  _lgCanvas.setDirty(true, true);
+  _lgFitToNodes();
 }
 
 // Button Back of the editor: from a sub workflow back to the workflow left (changes of the sub
@@ -3650,6 +3703,9 @@ function _initWorkflowEditor() {
     _lgCanvas = new LGraphCanvas("#workflow-litegraph", _lgGraph);
     _lgCanvas.getMenuOptions = _lgCanvasMenuOptions;
     _lgCanvas.onShowNodePanel = _lgShowNodeDefinition;
+    _lgCanvas.show_info = false;
+    _lgCanvas.render_canvas_border = false; // a rectangle in graph coordinates, moves when zooming or panning
+    _lgCanvas.onDrawForeground = _lgShowZoom;
     _lgGraph.start();
     // Apply stored canvas theme now that the canvas exists
     var storedCanvasTheme = null;

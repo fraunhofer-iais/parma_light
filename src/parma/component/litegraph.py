@@ -22,6 +22,7 @@ such a bind (constant type, no position, read by exactly one node) is shown as w
 
 The optional "litegraph" object of workflow nodes, inputs, binds and outputs keeps the layout of the
 canvas: {"pos": [x, y], "state": "expanded" | "collapsed"}. A missing "state" means "expanded".
+Nodes without a position are placed by a layered layout (see _LayeredLayout).
 """
 
 import json
@@ -81,9 +82,6 @@ def workflow_to_litegraph(workflow: dict) -> dict:
     # parma nodes, sub workflows and if nodes
     order = [name for name in workflow.get("_topological_order") or [] if name in workflow["nodes"]]
     order += [name for name in workflow["nodes"] if name not in order]
-    # for nodes without position: columns by dependency level
-    source_node_of = {channel: name for name, view in views.items() for channel in view["output_map"].values()}
-    auto_layout = _AutoLayout()
     lg_node_of = {}       # workflow node name -> litegraph node
     source_of = {}        # channel -> (litegraph node, output slot)
     widget_binds = set()  # bind channels shown as widget values
@@ -91,8 +89,7 @@ def workflow_to_litegraph(workflow: dict) -> dict:
         wf_node = workflow["nodes"][wf_node_name]
         view = views[wf_node_name]
         outputs = view["outputs"]
-        pos = _stored_pos(wf_node) or auto_layout.position(wf_node_name, view["input_map"].values(), source_node_of)
-        lg_node = graph.add_node(view["type"], pos, view["inputs"], outputs,
+        lg_node = graph.add_node(view["type"], _stored_pos(wf_node), view["inputs"], outputs,
                                  dict(view["properties"], **{WF_NODE_NAME_PROPERTY: wf_node_name}))
         _set_state(lg_node, wf_node)
         lg_node_of[wf_node_name] = lg_node
@@ -105,9 +102,8 @@ def workflow_to_litegraph(workflow: dict) -> dict:
                 widget_binds.add(channel)
 
     # inputs of the workflow
-    free_y = {}
     for channel, input_def in (workflow.get("input") or {}).items():
-        pos = _stored_pos(input_def) or _pos_left_of(lg_node_of, readers.get(channel, []), free_y)
+        pos = _stored_pos(input_def)
         lg_node = graph.add_node("core/wf_input", pos, [], [("value", input_def["type"])], {"name": channel})
         _set_state(lg_node, input_def)
         source_of[channel] = (lg_node, 0)
@@ -116,7 +112,7 @@ def workflow_to_litegraph(workflow: dict) -> dict:
     for channel, bind in workflow["bind"].items():
         if channel in widget_binds:
             continue
-        pos = _stored_pos(bind) or _pos_left_of(lg_node_of, readers.get(channel, []), free_y)
+        pos = _stored_pos(bind)
         if "data" in bind:
             name, version = _data_name_and_version(bind["data"])
             lg_node = graph.add_core_node("core/infile", pos, {"name": name, "version": version})
@@ -146,11 +142,12 @@ def workflow_to_litegraph(workflow: dict) -> dict:
         if channel not in source_of:
             continue
         source, source_slot = source_of[channel]
-        pos = _stored_pos(output_def) or [source["pos"][0] + 300, source["pos"][1] + 40 * source_slot]
-        lg_node = graph.add_core_node("core/outfile", pos, {"name": channel})
+        lg_node = graph.add_core_node("core/outfile", _stored_pos(output_def), {"name": channel})
         _set_state(lg_node, output_def)
         graph.add_link(source, source_slot, lg_node, 0)
 
+    # nodes without a stored position are placed by the layout
+    _LayeredLayout(graph).apply()
     return graph.serialize()
 
 
@@ -231,17 +228,6 @@ def _slot_index_of_lg(slots: list, name: str) -> int:
     return _slot_index([(s["name"], s["type"]) for s in slots], name)
 
 
-def _pos_left_of(lg_node_of: dict, readers: list, free_y: dict) -> list:
-    """position for a core node without position: left of the first node reading it, stacked downwards"""
-    if not readers:
-        return [50, 50]
-    target = lg_node_of[readers[0][0]]
-    x = target["pos"][0] - 250
-    y = free_y.get(x, target["pos"][1])
-    free_y[x] = y + 90
-    return [x, y]
-
-
 def _data_name_and_version(data_referer: dict) -> tuple:
     if "hash" in data_referer:
         data = d.get_data_by_hash(d.get_data_hash_by_referer(data_referer))
@@ -256,25 +242,181 @@ def _value_for_widget(value, channel_type: str):
     return value
 
 
-class _AutoLayout:
-    """places nodes in columns: a node is right of all nodes it reads from. Leaves room for input nodes left of it"""
-    COLUMN_WIDTH = 520
-    ROW_HEIGHT = 220
+# sizes as computed by LiteGraph (LGraphNode.computeSize in litegraph.js) and the titles of the core nodes
+_LG_TITLE_HEIGHT = 30
+_LG_SLOT_HEIGHT = 20
+_LG_WIDGET_HEIGHT = 24       # NODE_WIDGET_HEIGHT + 4
+_LG_NODE_WIDTH = 140
+_LG_CHAR_WIDTH = 14 * 0.6    # NODE_TEXT_SIZE * 0.6
+_LG_CORE_WIDGETS_START_Y = _LG_SLOT_HEIGHT + 5
+_CORE_TITLES = {"core/infile": "InputFile", "core/outfile": "OutputFile", "core/env_var_value": "EnvVarValue",
+                "core/wf_input": "WfInput", IF_TYPE: "If"}
+_CORE_TITLES.update({"core/" + _t: _t.capitalize() + "Constant" for _t in n.CONSTANT_TYPES})
+_CORE_WIDGETS = {"core/infile": 2, "core/outfile": 1, "core/env_var_value": 1, "core/wf_input": 1}
+_CORE_WIDGETS.update({"core/" + _t: 1 for _t in n.CONSTANT_TYPES})
 
-    def __init__(self):
-        self.level = {}
-        self.rows = {}
 
-    def position(self, wf_node_name, input_channels, source_node_of):
-        level = 0
-        for channel in input_channels:
-            writer = source_node_of.get(channel)
-            if writer in self.level:
-                level = max(level, self.level[writer] + 1)
-        self.level[wf_node_name] = level
-        row = self.rows.get(level, 0)
-        self.rows[level] = row + 1
-        return [320 + level * self.COLUMN_WIDTH, 80 + row * self.ROW_HEIGHT]
+def _estimated_size(lg_node: dict) -> tuple:
+    """(width, height) of a litegraph node as LiteGraph will compute it. The height is without the title bar"""
+    lg_type = lg_node["type"]
+    if lg_type.startswith(PARMA_PREFIX) or lg_type.startswith(WF_PREFIX):
+        title = lg_type.split("/", 1)[1]
+    else:
+        title = _CORE_TITLES.get(lg_type, lg_type)
+    title_width = len(title) * _LG_CHAR_WIDTH
+    if (lg_node.get("flags") or {}).get("collapsed"):
+        return title_width + 2 * _LG_TITLE_HEIGHT, 0
+    inputs, outputs = lg_node["inputs"], lg_node["outputs"]
+    if lg_type in _CORE_WIDGETS:
+        widgets = _CORE_WIDGETS[lg_type]
+    else:  # parma nodes, sub workflows, if nodes: a widget per unconnected constant input
+        widgets = sum(1 for s in inputs if s["link"] is None and s["type"] in n.CONSTANT_TYPES)
+    if lg_type == IF_TYPE:
+        out_labels = [" | ".join(p) if p[0] != p[1] else p[0] for p in lg_node["properties"].get("out_pairs", [])]
+    else:
+        out_labels = [s["name"] for s in outputs]
+    in_width = max((len(s["name"]) for s in inputs), default=0) * _LG_CHAR_WIDTH
+    out_width = max((len(label) for label in out_labels), default=0) * _LG_CHAR_WIDTH
+    width = max(in_width + out_width + 10, title_width, _LG_NODE_WIDTH)
+    rows = max(len(inputs), len(outputs), 1)
+    height = rows * _LG_SLOT_HEIGHT
+    if widgets:
+        width = max(width, _LG_NODE_WIDTH * 1.5)
+        widgets_height = widgets * _LG_WIDGET_HEIGHT + 8
+        if lg_type in _CORE_WIDGETS:
+            height = max(height, _LG_CORE_WIDGETS_START_Y + widgets_height)
+        else:
+            height += widgets_height
+    return width, height
+
+
+class _LayeredLayout:
+    """
+    Places the litegraph nodes without a stored position (layered layout, data flows from left to right):
+    - columns: a node is right of all nodes it reads from (longest path). A node without inputs (bind, input of
+      the workflow) is placed in the column directly left of the first column reading it
+    - the order in a column reduces crossings of links (barycenter heuristic)
+    - the width of a column is the width of its widest node, columns are separated by H_GAP
+    - a node is placed at the height of the slots it is connected to, overlapping nodes are moved down
+    Nodes with a stored position keep it. They take part in the computation as if they would be moved, too.
+    """
+    H_GAP = 80
+    V_GAP = 20
+    LEFT = 50
+    TOP = 50 + _LG_TITLE_HEIGHT
+    SWEEPS = 2
+
+    def __init__(self, graph: "_GraphBuilder"):
+        self.nodes = {lg_node["id"]: lg_node for lg_node in graph.nodes}
+        self.size = {i: _estimated_size(lg_node) for i, lg_node in self.nodes.items()}
+        self.preds = {i: [] for i in self.nodes}   # node id -> [(source id, source slot, target slot)]
+        self.succs = {i: [] for i in self.nodes}   # node id -> [(target id, target slot, source slot)]
+        for _, source, source_slot, target, target_slot, _ in graph.links:
+            self.preds[target].append((source, source_slot, target_slot))
+            self.succs[source].append((target, target_slot, source_slot))
+
+    def apply(self) -> None:
+        auto = [i for i, lg_node in self.nodes.items() if lg_node["pos"] is None]
+        if not auto:
+            return
+        columns = self._columns()
+        self._order(columns)
+        pos = self._positions(columns)
+        for i in auto:
+            self.nodes[i]["pos"] = [round(pos[i][0], 1), round(pos[i][1], 1)]
+
+    def _topological_order(self) -> list:
+        in_degree = {i: len(p) for i, p in self.preds.items()}
+        ready = [i for i in self.nodes if in_degree[i] == 0]
+        result = []
+        while ready:
+            i = ready.pop(0)
+            result.append(i)
+            for target, _, _ in self.succs[i]:
+                in_degree[target] -= 1
+                if in_degree[target] == 0:
+                    ready.append(target)
+        return result + [i for i in self.nodes if i not in result]  # defensive: cycles can't be stored
+
+    def _columns(self) -> list:
+        """list of columns, each a list of node ids"""
+        topo = self._topological_order()
+        column = {}
+        for i in topo:
+            column[i] = max((column.get(s, 0) + 1 for s, _, _ in self.preds[i]), default=0)
+        for i in topo:  # sources move right, directly before their first reader
+            if not self.preds[i] and self.succs[i]:
+                column[i] = min(column[t] for t, _, _ in self.succs[i]) - 1
+        columns = [[] for _ in range(max(column.values()) + 1)]
+        for i in topo:
+            columns[column[i]].append(i)
+        return columns
+
+    def _order(self, columns: list) -> None:
+        """reorders the nodes of the columns in place to reduce crossings (barycenter heuristic)"""
+        def sweep(column_indices, neighbours_of):
+            for k in column_indices:
+                index = {i: r for col in columns for r, i in enumerate(col)}
+
+                def key(i, rank):
+                    neighbours = [index[nb] + 0.01 * slot for nb, slot, _ in neighbours_of[i]]
+                    return (sum(neighbours) / len(neighbours) if neighbours else rank, rank)
+                columns[k] = [i for _, i in sorted((key(i, r), i) for r, i in enumerate(columns[k]))]
+
+        last = len(columns) - 1
+        for _ in range(self.SWEEPS):
+            sweep(range(1, last + 1), self.preds)
+            sweep(range(last - 1, -1, -1), self.succs)
+
+    def _positions(self, columns: list) -> dict:
+        """node id -> [x, y] (y is the top of the body of the node, the title bar is above)"""
+        pos = {}
+        x = self.LEFT
+        for col in columns:
+            for i in col:
+                pos[i] = [x, None]
+            x += max((self.size[i][0] for i in col), default=0) + self.H_GAP
+
+        def slot_y(i, slot):
+            return (slot + 0.7) * _LG_SLOT_HEIGHT if self.size[i][1] else 0
+
+        # left to right: at the height of the output slots read
+        for col in columns:
+            wanted = {}
+            for i in col:
+                ys = [pos[s][1] + slot_y(s, ss) - slot_y(i, ts) for s, ss, ts in self.preds[i]]
+                wanted[i] = sum(ys) / len(ys) if ys else None
+            self._place(col, wanted, pos)
+        # right to left: nodes without inputs at the height of the input slots they feed
+        for col in reversed(columns[:-1]):
+            wanted = {}
+            for i in col:
+                if self.preds[i]:
+                    wanted[i] = pos[i][1]
+                else:
+                    ys = [pos[t][1] + slot_y(t, ts) - slot_y(i, ss) for t, ts, ss in self.succs[i]]
+                    wanted[i] = sum(ys) / len(ys) if ys else None
+            self._place(col, wanted, pos)
+        # move the drawing to the top left corner
+        dy = self.TOP - min(p[1] for p in pos.values())
+        for p in pos.values():
+            p[1] += dy
+        return pos
+
+    def _place(self, col: list, wanted: dict, pos: dict) -> None:
+        """sets y of the nodes of a column: as wanted, but without overlapping. Nodes without wish at the bottom"""
+        order = sorted(range(len(col)), key=lambda r: (wanted[col[r]] is None, wanted[col[r]] or 0, r))
+        bottom = None  # lowest y allowed for the next node
+        for r in order:
+            i = col[r]
+            y = wanted[i]
+            if y is None:
+                y = bottom if bottom is not None else self.TOP
+            elif bottom is not None:
+                y = max(y, bottom)
+            pos[i][1] = y
+            bottom = y + self.size[i][1] + _LG_TITLE_HEIGHT + self.V_GAP
+        col[:] = [col[r] for r in order]
 
 
 class _GraphBuilder:
@@ -283,10 +425,11 @@ class _GraphBuilder:
         self.links = []
 
     def add_node(self, lg_type, pos, inputs, outputs, properties):
+        """a node with position None is placed later by _LayeredLayout"""
         lg_node = {
             "id": len(self.nodes) + 1,
             "type": lg_type,
-            "pos": list(pos),
+            "pos": list(pos) if pos else None,
             "flags": {},
             "order": len(self.nodes),
             "mode": 0,
