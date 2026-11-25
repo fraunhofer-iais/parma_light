@@ -868,20 +868,27 @@ def workflow_save():
     """
     POST /workflow/save
     Convert a LiteGraph graph from the workflow editor to the backend format and store it as workflow.
-    If a workflow with this name exists, a new version is created.
+    If the graph differs from the workflow "hash" (the one loaded into the editor) only by its layout
+    (positions, collapsed state, order of inputs and outputs), the layout of that workflow is replaced:
+    hash, version and date are unchanged. Otherwise a new workflow is stored (a new version, if a workflow
+    with this name exists).
 
     Request header:  X-Auth-Token: <token>
     Request JSON:
-        { "name": "<workflow name>", "graph": { <serialized litegraph graph> } }
+        { "name": "<workflow name>", "graph": { <serialized litegraph graph> },
+          "hash": "<hash of the workflow loaded into the editor>" (optional) }
 
     Response JSON:
-        { "success": true/false, "hash": "...", "version": <version> }
+        { "success": true/false, "hash": "...", "version": <version>, "layout_only": true/false }
     """
     calling_user = _get_authenticated_user()
     payload = request.get_json()
     workflow_def = lg.litegraph_to_workflow(payload.get("name", "").strip(), payload.get("graph") or {})
-    hash_value = wf.add_workflow(workflow_def, calling_user)
-    return jsonify({"success": True, "hash": hash_value, "version": wf.get_workflow_by_hash(hash_value).get("_version")})
+    base_hash = payload.get("hash")
+    hash_value, layout_only = wf.save_workflow(workflow_def, base_hash if isinstance(base_hash, str) else None,
+                                               calling_user)
+    return jsonify({"success": True, "hash": hash_value, "layout_only": layout_only,
+                    "version": wf.get_workflow_by_hash(hash_value).get("_version")})
 
 
 # -- helper --------------------------------------------------------------------

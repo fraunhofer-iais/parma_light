@@ -314,14 +314,14 @@ while [[ $# -gt 0 ]]; do
 
 
     # for easy testing and demonstration upload some info
-    init-datastore) env_file="$BASE_DIR/.env_testsetup"
+    upload-testdata) env_file="$BASE_DIR/.env_testsetup"
                     property_file='./parma_light.yaml'
                     while [[ 1 ]]; do
                     case "$1" in
                         [^-]*|'') break ;;
                         -e)     env_file="$2"; shift; shift ;;
                         -c)     property_file="$2"; shift; shift ;;
-                        *)      echo "invalid parameter $1 for init-datastore - exit 12" >&2
+                        *)      echo "invalid parameter $1 for upload-testdata - exit 12" >&2
                                 exit 12 ;;
                     esac
                     done

@@ -14,9 +14,9 @@ workflow {
     },
     "connect": {
         "model_file":        { "type": "file", "format": "any" },
-        "X_test_file":       { "type": "file", "format": "any" },
-        "pred_labels_file":  { "type": "file", "format": "any" },
-        "true_labels_file":  { "type": "file", "format": "any" }
+        "X_test_file":       { "type": "file", "format": "json" },
+        "pred_labels_file":  { "type": "file", "format": "json" },
+        "true_labels_file":  { "type": "file", "format": "json" }
     },
     "nodes": {
         "model": {

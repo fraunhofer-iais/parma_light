@@ -461,15 +461,19 @@ Response JSON:
 ### `/workflow/save`
 
 Convert a LiteGraph graph from the workflow editor to the backend format and store it as workflow.
-If a workflow with this name exists, a new version is created.
+If the graph differs from the workflow "hash" (the one loaded into the editor) only by its layout
+(positions, collapsed state, order of inputs and outputs), the layout of that workflow is replaced:
+hash, version and date are unchanged. Otherwise a new workflow is stored (a new version, if a workflow
+with this name exists).
 
 ```text
 Request header:  X-Auth-Token: <token>
 Request JSON:
-    { "name": "<workflow name>", "graph": { <serialized litegraph graph> } }
+    { "name": "<workflow name>", "graph": { <serialized litegraph graph> },
+      "hash": "<hash of the workflow loaded into the editor>" (optional) }
 
 Response JSON:
-    { "success": true/false, "hash": "...", "version": <version> }
+    { "success": true/false, "hash": "...", "version": <version>, "layout_only": true/false }
 ```
 
 ### `/workflow/snakemake_gen`

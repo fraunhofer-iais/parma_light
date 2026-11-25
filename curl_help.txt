@@ -75,8 +75,8 @@ Configuration:
   The credentials are kept in env files with 'export KEY=value' lines:
     .env_testsetup  git-controlled. Contains ONLY the well known values of the test setup.
     .env            git-ignored. Contains the real passwords.
-  'admin.sh init-datastore' sources one of them (default .env_testsetup, choose another one with
-  'admin.sh init-datastore -e <file>') and sets PARMA_URL from the property file.
+  'admin.sh upload-testdata' sources one of them (default .env_testsetup, choose another one with
+  'admin.sh upload-testdata -e <file>') and sets PARMA_URL from the property file.
   If you call curl.sh directly, source an env file and set PARMA_URL in your shell first (see examples).
   Use a subshell '( ... )' to keep the passwords out of your interactive shell afterwards.
 
@@ -101,5 +101,5 @@ Examples:
     ( source .env; export PARMA_URL=http://localhost:8080; ./curl.sh node my_nodes.txt )
 
   calling curl.sh by admin.sh:
-    ./admin.sh init-datastore                  upload the test setup (users, nodes, workflows, runs)
-    ./admin.sh init-datastore -e .env          the same, credentials from .env
+    ./admin.sh upload-testdata                  upload the test setup (users, nodes, workflows, runs)
+    ./admin.sh upload-testdata -e .env          the same, credentials from .env

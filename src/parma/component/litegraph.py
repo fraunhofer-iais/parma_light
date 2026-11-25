@@ -20,6 +20,17 @@ An unconnected constant input of a parma node shows a widget in the editor. Its 
 node property named like the input and becomes a "bind" WITHOUT "litegraph". When a workflow is loaded,
 such a bind (constant type, no position, read by exactly one node) is shown as widget value again.
 
+Names survive a round trip through the editor (load, edit, save): node properties keep the names of the
+loaded workflow and are used as proposals when saving. "wf_node_name" (parma/wf/if nodes) is the name of the
+workflow node, "wf_output_channels" ({output: channel}) and "wf_widget_channels" ({input: channel}) of parma/wf/if
+nodes and "wf_channel" of infile, env var value and constant nodes are channel names. "wf_format" (infile, env
+var value, constant and workflow input nodes) and "wf_widget_formats" ({input: format}, parma/wf/if nodes) are
+the formats of inputs and binds: the user's choice, they may differ from the formats of the reading nodes. Without
+these properties the editor would invent names and formats, and a workflow saved without any change would differ
+from the loaded one. Formats of connect and output channels need no property: workflow.prepare_workflow sets them
+to the formats of the writing node outputs, as the editor does. Versions are frozen there, too ("latest" is
+replaced by the version used), thus the versions of the litegraph types are those of the stored workflow.
+
 The optional "litegraph" object of workflow nodes, inputs, binds and outputs keeps the layout of the
 canvas: {"pos": [x, y], "state": "expanded" | "collapsed"}. A missing "state" means "expanded".
 Nodes without a position are placed by a layered layout (see _LayeredLayout).
@@ -39,6 +50,11 @@ WF_PREFIX = "wf/"
 IF_TYPE = "core/if"
 IF_CONDITION = "condition"
 WF_NODE_NAME_PROPERTY = "wf_node_name"
+WF_CHANNEL_PROPERTY = "wf_channel"                   # core source nodes: the channel of the bind
+WF_OUTPUT_CHANNELS_PROPERTY = "wf_output_channels"   # parma/wf/if nodes: {output name: channel}
+WF_WIDGET_CHANNELS_PROPERTY = "wf_widget_channels"   # parma/wf/if nodes: {input name: channel of a widget value}
+WF_FORMAT_PROPERTY = "wf_format"                     # core source nodes: the format of the input or bind
+WF_WIDGET_FORMATS_PROPERTY = "wf_widget_formats"     # parma/wf/if nodes: {input name: format of a widget value}
 STATE_EXPANDED = "expanded"
 STATE_COLLAPSED = "collapsed"
 
@@ -89,8 +105,12 @@ def workflow_to_litegraph(workflow: dict) -> dict:
         wf_node = workflow["nodes"][wf_node_name]
         view = views[wf_node_name]
         outputs = view["outputs"]
-        lg_node = graph.add_node(view["type"], _stored_pos(wf_node), view["inputs"], outputs,
-                                 dict(view["properties"], **{WF_NODE_NAME_PROPERTY: wf_node_name}))
+        properties = dict(view["properties"], **{
+            WF_NODE_NAME_PROPERTY: wf_node_name,
+            WF_OUTPUT_CHANNELS_PROPERTY: dict(view["output_map"]),
+            WF_WIDGET_CHANNELS_PROPERTY: {},
+            WF_WIDGET_FORMATS_PROPERTY: {}})
+        lg_node = graph.add_node(view["type"], _stored_pos(wf_node), view["inputs"], outputs, properties)
         _set_state(lg_node, wf_node)
         lg_node_of[wf_node_name] = lg_node
         for node_channel, channel in view["output_map"].items():
@@ -99,12 +119,15 @@ def workflow_to_litegraph(workflow: dict) -> dict:
             bind = workflow["bind"].get(channel)
             if bind and bind["type"] in n.CONSTANT_TYPES and _stored_pos(bind) is None and len(readers[channel]) == 1:
                 lg_node["properties"][node_channel] = _value_for_widget(bind["value"], bind["type"])
+                lg_node["properties"][WF_WIDGET_CHANNELS_PROPERTY][node_channel] = channel
+                lg_node["properties"][WF_WIDGET_FORMATS_PROPERTY][node_channel] = bind.get("format")
                 widget_binds.add(channel)
 
     # inputs of the workflow
     for channel, input_def in (workflow.get("input") or {}).items():
         pos = _stored_pos(input_def)
-        lg_node = graph.add_node("core/wf_input", pos, [], [("value", input_def["type"])], {"name": channel})
+        lg_node = graph.add_node("core/wf_input", pos, [], [("value", input_def["type"])],
+                                 {"name": channel, WF_FORMAT_PROPERTY: input_def.get("format")})
         _set_state(lg_node, input_def)
         source_of[channel] = (lg_node, 0)
 
@@ -123,6 +146,7 @@ def workflow_to_litegraph(workflow: dict) -> dict:
                                           {"value": _value_for_widget(bind["value"], bind["type"])})
         else:
             _error(f"bind \"{channel}\" can't be shown graphically")
+        lg_node["properties"].update({WF_CHANNEL_PROPERTY: channel, WF_FORMAT_PROPERTY: bind.get("format")})
         _set_state(lg_node, bind)
         source_of[channel] = (lg_node, 0)
 
@@ -525,11 +549,17 @@ def litegraph_to_workflow(name: str, graph: dict) -> dict:
         source = lg_nodes[origin_id]
         props = source.get("properties") or {}
         source_type = source["type"]
+        # channel name and format of the loaded workflow (if any) are kept, see WF_CHANNEL_PROPERTY
+        loaded_channel = props.get(WF_CHANNEL_PROPERTY)
+        loaded_format = props.get(WF_FORMAT_PROPERTY)
+        fmt = loaded_format or target_meta["format"]
         if key in channel_of_source:
             channel = channel_of_source[key]
             if source_type == "core/wf_input":
+                # a loaded format may differ from the formats of the inputs (validated when storing)
                 input_def = workflow["input"][channel]
-                if (input_def["type"], input_def["format"]) != (target_meta["type"], target_meta["format"]):
+                if input_def["type"] != target_meta["type"] or (
+                        not loaded_format and input_def["format"] != target_meta["format"]):
                     _error(f"workflow input \"{channel}\" is connected to inputs of different type or format "
                            f"({input_def['type']}/{input_def['format']} and {target_meta['type']}/{target_meta['format']})")
             return channel
@@ -538,30 +568,31 @@ def litegraph_to_workflow(name: str, graph: dict) -> dict:
             if not NAME_PATTERN.match(input_name or ""):
                 _error(f"workflow input name \"{input_name}\" is invalid")
             channel = names.reserve(input_name, must_be_unchanged=True)
-            workflow["input"][channel] = {"type": target_meta["type"], "format": target_meta["format"],
+            workflow["input"][channel] = {"type": target_meta["type"], "format": fmt,
                                           "litegraph": _litegraph_of(source)}
         elif source_type == "core/infile":
             data_name, data_version = props.get("name", ""), props.get("version", "")
             if not data_name or not data_version:
                 _error("an input file needs name and version")
-            channel = names.reserve(data_name)
-            workflow["bind"][channel] = {"type": target_meta["type"], "format": target_meta["format"],
+            channel = names.reserve(loaded_channel or data_name)
+            workflow["bind"][channel] = {"type": target_meta["type"], "format": fmt,
                                          "data": {"name": data_name, "version": str(data_version)}, "litegraph": _litegraph_of(source)}
         elif source_type == "core/env_var_value":
-            channel = names.reserve(target_input_name)
-            workflow["bind"][channel] = {"type": "environment_var", "format": target_meta["format"],
+            channel = names.reserve(loaded_channel or target_input_name)
+            workflow["bind"][channel] = {"type": "environment_var", "format": fmt,
                                          "environment_var_value": str(props.get("value", "")), "litegraph": _litegraph_of(source)}
         elif source_type.startswith("core/") and source_type[len("core/"):] in n.CONSTANT_TYPES:
             constant_type = source_type[len("core/"):]
-            channel = names.reserve(target_input_name)
-            workflow["bind"][channel] = {"type": constant_type, "format": target_meta["format"],
+            channel = names.reserve(loaded_channel or target_input_name)
+            workflow["bind"][channel] = {"type": constant_type, "format": fmt,
                                          "value": _value_from_widget(props.get("value"), constant_type, channel),
                                          "litegraph": _litegraph_of(source)}
         elif origin_id in wf_node_name_of:
             source_name = wf_node_name_of[origin_id]
             output_name = source["outputs"][origin_slot]["name"]
             output_meta = node_def_of[origin_id]["output"][output_name]
-            channel = names.reserve(f"{source_name}_{output_name}")
+            loaded_channel = (props.get(WF_OUTPUT_CHANNELS_PROPERTY) or {}).get(output_name)
+            channel = names.reserve(loaded_channel or f"{source_name}_{output_name}")
             workflow["connect"][channel] = {"type": output_meta["type"], "format": output_meta["format"]}
             workflow["nodes"][source_name]["output"][output_name] = channel
         else:
@@ -608,9 +639,11 @@ def litegraph_to_workflow(name: str, graph: dict) -> dict:
             if link:
                 channel = channel_for_source(link["origin_id"], link["origin_slot"], input_meta, channel_proposal)
             elif input_meta["type"] in n.CONSTANT_TYPES:
-                channel = names.reserve(channel_proposal)
+                loaded_channel = (props.get(WF_WIDGET_CHANNELS_PROPERTY) or {}).get(input_name)
+                channel = names.reserve(loaded_channel or channel_proposal)
                 value = props.get(input_name, _DEFAULT_VALUE[input_meta["type"]])
-                workflow["bind"][channel] = {"type": input_meta["type"], "format": input_meta["format"],
+                widget_format = (props.get(WF_WIDGET_FORMATS_PROPERTY) or {}).get(input_name) or input_meta["format"]
+                workflow["bind"][channel] = {"type": input_meta["type"], "format": widget_format,
                                              "value": _value_from_widget(value, input_meta["type"], channel)}
             else:
                 continue  # not connected: reported as warning when the workflow is stored

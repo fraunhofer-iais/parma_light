@@ -25,7 +25,7 @@ workflow {
     "input": {
     },
     "output": {
-        "repeated_nix":   { "type": "file", "format": "any" }
+        "repeated_nix":   { "type": "file", "format": "json" }
     },
     "bind": {
         "string_nix":    { "type": "environment_var", "format": "str", "environment_var_value": "nix" },

@@ -97,7 +97,8 @@ def init(host_os_config: str,
     }
 
 
-def enrich_and_store_in_table(table_dict: dict, entry: dict, logged_in_user: str) -> str:
+def enrich_and_store_in_table(table_dict: dict, entry: dict, logged_in_user: str,
+                              hash_function=h.make_git_like_hash_of_json) -> str:
     """
     Stores an entry (user, data, node, workflow, run) in its table.
     Creates the _version, _date, _hash_of_creating_user metadata properties.
@@ -107,6 +108,8 @@ def enrich_and_store_in_table(table_dict: dict, entry: dict, logged_in_user: str
         table_dict (dict): The table to store the entry into.
         entry (dict): Entry to be enriched and stored.
         logged_in_user (str): The user performing the operation.
+        hash_function (callable): Computes the hash of the entry. Default: the hash of the whole entry.
+                Workflows use a hash without their layout (see workflow.workflow_hash).
 
     Returns:
         str: The hash of the stored entry.
@@ -116,7 +119,7 @@ def enrich_and_store_in_table(table_dict: dict, entry: dict, logged_in_user: str
     entry["_version"] = version
     entry["_date"] = h.get_date()
     entry["_hash_of_creating_user"] = logged_in_user
-    hash = h.make_git_like_hash_of_json(entry)
+    hash = hash_function(entry)
     
     with _table_mutex:
         table_dict[hash] = entry

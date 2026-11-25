@@ -20,7 +20,7 @@ schema differ, the schema is right.
   It shows lists of data, nodes, workflows and runs. Definitions can be uploaded, downloaded, edited and deleted,
   workflows can be edited graphically (based on LiteGraph) and run, the data and logs of runs can be inspected.
 - `./curl.sh` uploads files with definitions from the command line, as the frontend does. See `./curl.sh help`.
-- `./admin.sh init-datastore` uploads the definitions of `test/test_cmds` for testing and demonstration.
+- `./admin.sh upload-testdata` uploads the definitions of `test/test_cmds` for testing and demonstration.
   See `./admin.sh help`.
 
 ## Design decisions for the backend server
@@ -248,8 +248,8 @@ Remarks:
 - "bind" binds a value to a channel: exactly one of "data" (for `file` and `directory`), "environment_var_value"
   (for `environment_var`) and "value" (for constants).
 - "connect" declares the channels between the nodes.
-- in node_use exactly one of "node" and "workflow" is required. The channels of the node or sub workflow are
-  mapped to workflow channels (_renaming_). All channels of a node should be renamed, a channel that is not renamed
+- in node*use exactly one of "node" and "workflow" is required. The channels of the node or sub workflow are
+  mapped to workflow channels (\_renaming*). All channels of a node should be renamed, a channel that is not renamed
   is reported in the log.
 - a sub workflow input can be fed by an input of the calling workflow, by a "connect" channel (an output of another
   node) or by a "bind" channel of the calling workflow (data, environment var value or constant).
@@ -261,7 +261,15 @@ Remarks:
   node that is executed). The branch of an if node that is not selected and the nodes feeding only this branch are
   skipped.
 - all nodes, channels and workflows may have an optional key "litegraph" with layout data of the workflow editor
-  (`{"pos": [x, y], "state": "expanded" or "collapsed"}`).
+  (`{"pos": [x, y], "state": "expanded" or "collapsed"}`). The layout is not part of the hash of a workflow: the hash
+  is its execution identity. Saving a workflow in the editor with a changed layout only replaces the layout of the
+  stored workflow; hash, version and date are unchanged.
+- a workflow is stored in a canonical form, thus it runs the same definitions and data forever (reproducibility)
+  and a round trip through the workflow editor reproduces it:
+  - versions are frozen: a referer with "latest" (node, sub workflow, branch of an if node, data of a bind) gets the
+    version used when the workflow is stored. The data of a bind must exist at this time.
+  - the "format" of a connect or output channel is the format of the node output writing it (a different format
+    given in the definition is replaced). Formats of inputs and binds are kept.
 
 Example (the condition selects the metric):
 
@@ -353,7 +361,7 @@ Runs an existing workflow. A workflow with inputs (a sub workflow) can't be run.
 ```json
 {
   "name": "<name of the run>",
-  "workflow": {"name": "<name>", "version": "<number or latest>"}
+  "workflow": { "name": "<name>", "version": "<number or latest>" }
 }
 ```
 

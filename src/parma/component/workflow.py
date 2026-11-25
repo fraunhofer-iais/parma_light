@@ -5,6 +5,7 @@ import intern.helper as h
 import intern.msg as msg
 import intern.database as db
 import component.node as n
+import component.data as d
 
 
 def get_workflow_hash_by_referer(referer: dict) -> str:
@@ -84,6 +85,93 @@ def add_workflow(workflow: dict, logged_in_user: str) -> str:
     Returns:
         str: The hash of the added workflow entry.
     """
+    prepare_workflow(workflow)
+    return db.enrich_and_store_in_table(db._workflow, workflow, logged_in_user, hash_function=workflow_hash)
+
+
+# -- layout and identity of workflows ---------------------------------------------------------------
+# The hash of a workflow is its execution identity: the layout of the workflow editor ("litegraph" of
+# nodes, inputs, outputs and binds; "pos" of older definitions) isn't part of it. Thus the layout of a
+# stored workflow can be changed in place without changing its hash, version and date.
+_LAYOUT_KEYS = ("litegraph", "pos")
+_LAYOUT_SECTIONS = ("nodes", "input", "output", "bind", "connect")
+# metadata of the store and data derived from the workflow: not compared to detect a layout-only change
+# (the topological order may differ for the same graph, if the editor lists the nodes in another order)
+_METADATA_KEYS = ("_version", "_date", "_hash_of_creating_user", "_topological_order")
+
+
+def _without_layout(workflow: dict) -> dict:
+    """a deep copy of the workflow without the layout of the editor"""
+    result = copy.deepcopy(workflow)
+    for section in _LAYOUT_SECTIONS:
+        for definition in (result.get(section) or {}).values():
+            if isinstance(definition, dict):
+                for key in _LAYOUT_KEYS:
+                    definition.pop(key, None)
+    return result
+
+
+def workflow_hash(workflow: dict) -> str:
+    """the hash of a workflow: the hash of its content without the layout of the editor"""
+    return h.make_git_like_hash_of_json(_without_layout(workflow))
+
+
+def _semantics(workflow: dict) -> dict:
+    """what a workflow executes: the workflow without layout, metadata of the store and derived data"""
+    result = _without_layout(workflow)
+    for key in _METADATA_KEYS:
+        result.pop(key, None)
+    return result
+
+
+def save_workflow(workflow: dict, base_hash: str, logged_in_user: str) -> tuple:
+    """
+    Saves a workflow from the workflow editor. If it differs from the stored workflow "base_hash" (the one
+    loaded into the editor) only by its layout, the layout of the stored workflow is replaced in place: hash,
+    version, date and creating user are unchanged. Otherwise a new workflow entry (a new version) is added.
+
+    Args:
+        workflow (dict): The workflow entry object.
+        base_hash (str): The hash of the workflow loaded into the editor, None for a new workflow.
+        logged_in_user (str): The user performing the operation.
+
+    Returns:
+        tuple: (hash of the stored workflow entry, True if only the layout was changed)
+    """
+    prepare_workflow(workflow)
+    stored = db._workflow.get(base_hash) if base_hash else None
+    if stored is None or _semantics(workflow) != _semantics(stored):
+        return db.enrich_and_store_in_table(db._workflow, workflow, logged_in_user, hash_function=workflow_hash), False
+    with db._table_mutex:
+        for section in _LAYOUT_SECTIONS:
+            new_section = workflow.get(section) or {}
+            old_section = stored.get(section) or {}
+            for name, definition in old_section.items():
+                for key in _LAYOUT_KEYS:
+                    definition.pop(key, None)
+                    if key in new_section[name]:
+                        definition[key] = copy.deepcopy(new_section[name][key])
+            # the order of inputs and outputs (the slots of a sub workflow) follows the editor. It isn't
+            # part of the hash (the JSON is hashed with sorted keys)
+            if section in stored:
+                stored[section] = {name: old_section[name] for name in new_section}
+    dbc.assert_true(workflow_hash(stored) == base_hash,
+                    {"msg": "SYSTEM_ERROR", "details": "the hash of a workflow changed by its layout"}, user_error=False)
+    return base_hash, True
+
+
+def prepare_workflow(workflow: dict) -> None:
+    """
+    Validates a workflow (structure and channels) and enriches it for storing: default formats of constant
+    binds, the hashes of the used node and workflow definitions and the topological order of its nodes.
+    The workflow is made canonical, thus a round trip through the workflow editor reproduces it and it is
+    reproducible over time:
+    - versions of nodes, sub workflows and data are frozen: "latest" becomes the version used now
+    - the formats of connect and output channels are the formats of the node outputs writing them
+
+    Args:
+        workflow (dict): The workflow entry object. It is modified.
+    """
     n.validate_channel_types(workflow.get("bind"), "bind")
     _default_format_of_constant_binds(workflow.get("bind"))
     h.validate_user_input(workflow, "workflow_def")
@@ -99,6 +187,8 @@ def add_workflow(workflow: dict, logged_in_user: str) -> str:
             _validate_if_node(node_name, node, workflow)
         else:
             _validate_used_node(node, workflow)
+    _freeze_data_binds(workflow["bind"])
+    _normalize_written_formats(workflow)
     all_renamings = set(
             renaming
             for node in workflow["nodes"].values()
@@ -127,8 +217,6 @@ def add_workflow(workflow: dict, logged_in_user: str) -> str:
     workflow["_topological_order"] = topological_order
 
     h.check_that_node_channels_are_bound(used_nodes(workflow["nodes"]), n.get_node_by_hash, get_workflow_by_hash)
-
-    return db.enrich_and_store_in_table(db._workflow, workflow, logged_in_user)
 
 
 # -- if nodes ---------------------------------------------------------------------------------------
@@ -181,6 +269,9 @@ def _validate_used_node(node: dict, workflow: dict) -> dict:
         hash_of_def = get_workflow_hash_by_referer(usage)
         node["_hash_of_workflow_def"] = hash_of_def
         definition = get_workflow_by_hash(hash_of_def)
+    if "name" in usage:
+        # freeze the version: "latest" (and numbers) become the version used now, as a string (like the editor writes it)
+        usage["version"] = str(definition["_version"])
     _validate_node_def_matches_node_use(kind, usage, definition, node)
     _validate_renamings(kind, usage, node["input"], [workflow["input"], workflow["bind"], workflow["connect"]])
     _validate_renamings(kind, usage, node["output"], [workflow["output"], workflow["connect"]])
@@ -360,6 +451,40 @@ def _validate_full_channel_def(defs) -> None:
                 break
     if error:
         dbc.raise_error({"msg": "INVALID_CHANNEL_DEF"})
+
+
+def _freeze_data_binds(binds: dict) -> None:
+    """
+    The data of a bind is referenced by name and the version used now: "latest" and a hash are replaced.
+    The data must exist when the workflow is stored.
+    """
+    for bind in binds.values():
+        if isinstance(bind, dict) and "data" in bind:
+            data = d.get_data_by_hash(d.get_data_hash_by_referer(bind["data"]))
+            bind["data"] = {"name": data["name"], "version": str(data["_version"])}
+
+
+def _definition_of_used_node(node: dict) -> dict:
+    """the definition of a node or sub workflow used in a workflow (after _validate_used_node)"""
+    if "_hash_of_node_def" in node:
+        return n.get_node_by_hash(node["_hash_of_node_def"])
+    return get_workflow_by_hash(node["_hash_of_workflow_def"])
+
+
+def _normalize_written_formats(workflow: dict) -> None:
+    """
+    The format of a connect or output channel is the format of the node output writing it (the format given
+    in the workflow is replaced). For an if node the then branch is used: both branches write the channels
+    with equal formats.
+    """
+    for node in workflow["nodes"].values():
+        used = node["then"] if "if" in node else node
+        output_defs = _definition_of_used_node(used)["output"]
+        for output_name, channel in used["output"].items():
+            for section in ("connect", "output"):
+                channel_def = workflow[section].get(channel)
+                if channel_def is not None and output_name in output_defs and "format" in output_defs[output_name]:
+                    channel_def["format"] = output_defs[output_name]["format"]
 
 
 def _default_format_of_constant_binds(binds) -> None:

@@ -2,7 +2,7 @@
 
 This git repository contains an implementation of the Parma-Light platform. Parma-Light is a simple, experimental implementation of the platform published in
 
-> Pintz, M., Becker, D., Mock, M. (2024). **PARMA: a Platform Architecture to enable Automated, Reproducible, and Multi-party Assessments of AI Trustworthiness**. In *Proceedings of the 2nd International Workshop on Responsible AI Engineering* (pp. 20–27).
+> Pintz, M., Becker, D., Mock, M. (2024). **PARMA: a Platform Architecture to enable Automated, Reproducible, and Multi-party Assessments of AI Trustworthiness**. In _Proceedings of the 2nd International Workshop on Responsible AI Engineering_ (pp. 20–27).
 
 ## Licence
 
@@ -12,7 +12,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-  <http://www.apache.org/licenses/LICENSE-2.0>
+<http://www.apache.org/licenses/LICENSE-2.0>
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -61,11 +61,11 @@ The setup is complete now. You can start to work with the platform
   The domains are the directories in `test/container`.
 - `./admin.sh init` - initialize the datastore (directories and files from the `store` section of `parma_light.yaml`)
 - `./admin.sh server` - start the backend server in a terminal of its own. It listens on port `8080`.
-- `./admin.sh init-datastore` - in **another** shell: upload users, nodes, workflows and runs from `test/test_cmds`
+- `./admin.sh upload-testdata` - in **another** shell: upload users, nodes, workflows and runs from `test/test_cmds`
   for testing and demonstration. It uses `./curl.sh`, see `./admin.sh help` and `./curl.sh help`.
   The credentials are taken from an env file:
   - `.env_testsetup` - git-controlled, contains only the well known test credentials. This is the default.
-  - `.env` - git-ignored, for the real passwords. Use it with `./admin.sh init-datastore -e .env`.
+  - `.env` - git-ignored, for the real passwords. Use it with `./admin.sh upload-testdata -e .env`.
     Create it as a copy of `.env_testsetup` and change the passwords. Never commit it.
 - open `http://localhost:8080` in a browser and log in, e.g. as user `sklearn` of the test setup.
   The lists of data, nodes, workflows and runs show the uploaded definitions. Workflows can be edited, run and

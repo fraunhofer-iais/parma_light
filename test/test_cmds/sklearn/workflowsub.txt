@@ -11,7 +11,7 @@ workflow {
     },
     "connect": {
         "model_file":        { "type": "file", "format": "any" },
-        "X_test_file":       { "type": "file", "format": "any" }
+        "X_test_file":       { "type": "file", "format": "json" }
     },
     "nodes": {
         "model": {

@@ -3,8 +3,8 @@ workflow {
     "input": {
     },
     "output": {
-        "repeated_inte":  { "type": "file", "format": "any" },
-        "repeated_lina":  { "type": "file", "format": "any" }
+        "repeated_inte":  { "type": "file", "format": "json" },
+        "repeated_lina":  { "type": "file", "format": "json" }
     },
     "bind": {
         "string_inte":    { "type": "environment_var", "format": "str", "environment_var_value": "inte" },

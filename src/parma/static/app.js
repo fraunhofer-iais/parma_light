@@ -635,7 +635,8 @@ var _canvasThemes = {
       : null,
     nodeColor: "#333",
     nodeBgColor: "#353535",
-    titleColor: "#999",
+    titleColor: "#d0d0d0", // contrast to nodeColor ≈ 9:1
+    selectedTitleColor: "#fff",
     nodeTextColor: "#AAA",
     linkColor: "#9A9",
   },
@@ -644,7 +645,8 @@ var _canvasThemes = {
     backgroundImage: null,
     nodeColor: "#e0e0e0",
     nodeBgColor: "#d4d4d4",
-    titleColor: "#fff",
+    titleColor: "#1a1a1a", // contrast to nodeColor ≈ 13:1 (white had ≈ 1.3:1)
+    selectedTitleColor: "#000",
     nodeTextColor: "#333",
     linkColor: "#555",
   },
@@ -657,6 +659,7 @@ function applyCanvasTheme(themeName, btn) {
     _lgCanvas.clear_background_color = theme.background;
     _lgCanvas.background_image = theme.backgroundImage;
     _lgCanvas.node_title_color = theme.titleColor;
+    LiteGraph.NODE_SELECTED_TITLE_COLOR = theme.selectedTitleColor; // global in LiteGraph, default white
     _lgCanvas.default_link_color = theme.linkColor;
     LiteGraph.NODE_DEFAULT_COLOR = theme.nodeColor;
     LiteGraph.NODE_DEFAULT_BGCOLOR = theme.nodeBgColor;
@@ -3208,10 +3211,15 @@ function saveWorkflowGraph() {
   }
   // the state sent is the saved state: changes made while saving keep the editor dirty
   var sentSnapshot = _workflowEditorSnapshot();
-  apiCall("POST", "/workflow/save", { name: name, graph: _lgGraph.serialize() })
+  // the hash of the workflow loaded: if only the layout was changed, the backend keeps hash and version
+  var payload = { name: name, graph: _lgGraph.serialize(), hash: _wfEditorSaved.hash };
+  apiCall("POST", "/workflow/save", payload)
     .then(function (result) {
       if (result.success) {
-        showToast("Workflow " + name + ":" + result.version + " saved", "success");
+        showToast(
+          (result.layout_only ? "Layout of workflow " : "Workflow ") + name + ":" + result.version + " saved",
+          "success",
+        );
         _setWorkflowEditorTitle(name, result.version);
         _markWorkflowEditorSaved(result.hash, name + ":" + result.version, sentSnapshot);
       } else {
@@ -3704,6 +3712,10 @@ function _initWorkflowEditor() {
     _lgCanvas.getMenuOptions = _lgCanvasMenuOptions;
     _lgCanvas.onShowNodePanel = _lgShowNodeDefinition;
     _lgCanvas.show_info = false;
+    // properties "wf_..." keep the names of the loaded workflow (see litegraph.py): not shown in the node panel
+    LGraphNode.prototype.onAddPropertyToPanel = function (name) {
+      return name.indexOf("wf_") === 0;
+    };
     _lgCanvas.render_canvas_border = false; // a rectangle in graph coordinates, moves when zooming or panning
     _lgCanvas.onDrawForeground = _lgShowZoom;
     _lgGraph.start();

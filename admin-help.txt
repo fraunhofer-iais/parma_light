@@ -35,7 +35,7 @@ Commands:
         chmod 666 /var/run/docker.sock
     This is a security problem. Use never in production systems! Read about 'dood' and 'dind' and the security implications.
 
-  init-datastore -e {path-to-env-file} -c {path-to-yaml-property-file} {sklearn} {array} {bash}
+  upload-testdata -e {path-to-env-file} -c {path-to-yaml-property-file} {sklearn} {array} {bash}
     for easy testing and demonstration: uploads users, nodes, workflows and runs from 'test/test_cmds' to a
     running backend by calling curl.sh.
     -e      defines the (optional) env file with the credentials, it is sourced. Default is '.env_testsetup'
@@ -44,7 +44,7 @@ Commands:
     -c      defines the (optional) path to the yaml-property-file, default is 'parma_light.yaml'.
             The port is taken from 'server.port', the host is always localhost.
     sklearn array bash: (optional) flags selecting the groups to upload (1 = yes, 0 = no), defaults are 1 1 0.
-    Example: ./admin.sh init-datastore -e .env 1 0 0
+    Example: ./admin.sh upload-testdata -e .env 1 0 0
 
   assess
     use uv to update the toml-file and uv.lock, then run
